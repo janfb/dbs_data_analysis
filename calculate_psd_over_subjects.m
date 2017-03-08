@@ -54,9 +54,12 @@ end
 p_mean = mean(P, 3);
 
 %% Plotting 
+mask = F < 50; 
 for j=1:6;
     subplot(2,3,j); 
-    plot(F, p_mean(:, j)); 
+    plot(F(mask), p_mean(mask, j), 'b', 'LineWidth', 2);  hold on; 
+    p = squeeze(P(mask, j, :));
+    plot(F(mask), p, 'g', 'LineWidth', .01); hold off;
     title(chans{j}); 
     xlabel('Frequency [Hz]');
     ylabel('PSD V^2 / Hz');

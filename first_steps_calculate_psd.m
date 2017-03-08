@@ -19,8 +19,8 @@ fsample=D.fsample;
 % legend(chans)
 
 %% zero mean the data to remove the DC component 
-m = mean(data');
-data_centered = data - (m' * ones(1, size(data,2)));
+m = mean(data, 2);
+data_centered = data - (m * ones(1, size(data,2)));
 
 %% use pwelch to make a power spectrum
 % input the data matrix transposed such that the PSD is calculated on each
