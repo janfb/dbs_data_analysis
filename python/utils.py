@@ -1,12 +1,24 @@
 from scipy.io import loadmat
-from definitions import DATA_PATH
+from definitions import DATA_PATH, SAVE_PATH_DATA
 import os
 import scipy.signal
 import numpy as np
 import sys
+import pickle
 
 
-def load_data(filename='spmeeg_1.mat', data_folder=DATA_PATH):
+def save_data(data_dict, filename, folder=SAVE_PATH_DATA):
+    full_path_to_file = os.path.join(folder, filename)
+    with open(full_path_to_file, 'wb') as outfile:
+        pickle.dump(data_dict, outfile, protocol=pickle.HIGHEST_PROTOCOL)
+
+
+def load_data_analysis(filename, data_folder=SAVE_PATH_DATA):
+    full_path = os.path.join(data_folder, filename)
+    return pickle.load(open(full_path, 'rb'))
+
+
+def load_data_spm(filename='spmeeg_1.mat', data_folder=DATA_PATH):
     """
     Load a file of the original spm data files that have been converted to readable python format
     :param filename: the filename, 1 by default
