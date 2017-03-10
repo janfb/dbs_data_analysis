@@ -25,6 +25,7 @@ def remove_50_noise(y, fs, order=2):
     :return: the time series, 50Hz noise filtered out
     """
     wn = np.array([48, 52]) / fs * 2
+    # noinspection PyTupleAssignmentBalance
     b, a = scipy.signal.butter(order, wn, btype='bandstop')
     return scipy.signal.lfilter(b, a, y)
 
@@ -64,14 +65,16 @@ def find_peak_in_band(frequs, psd, band):
     :return: the index of the peak, the masked frequs vector, the masked psd vector
     """
     mask = get_array_mask(frequs > band[0], frequs < band[1])
-    [maxtab, mintab] = peakdet(psd[mask], delta=1e-6)
+    psd_band = psd[mask]
+    [maxtab, mintab] = peakdet(v=psd_band, delta=1e-8)
     # get the indices of all maxima
     indices = np.array(maxtab[:, 0], int)
     # remove the zero index if in there
-    indices = indices[indices > 0]
+    if len(indices) > 1 and indices[0] == 0:
+        indices = indices[1:]
     # select the maximum peak
-    peak_idx = np.argmax(psd[indices])
-    return indices[peak_idx], frequs[mask], psd[mask]
+    peak_idx = np.argmax(psd_band[indices])
+    return indices[peak_idx], frequs[mask], psd_band
 
 
 def peakdet(v, delta, x=None):
