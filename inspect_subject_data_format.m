@@ -20,6 +20,8 @@ for i=1:size(file_list, 1);
 
         % get GPi data into normal matlab format
         ind=strmatch('GPi',D.chanlabels);
+        display(D.chanlabels);
+        display(name);
         data=D(ind,:,:);
         chans=D.chanlabels(ind);
         time=D.time;
@@ -35,5 +37,6 @@ for i=1:size(file_list, 1);
 end
 
 display(lfp_channels)
+display(sum(lfp_channels))
 display(filenames)
 display(file_outliers)

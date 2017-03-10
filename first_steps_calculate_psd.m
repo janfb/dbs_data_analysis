@@ -14,9 +14,9 @@ time=D.time;
 fsample=D.fsample;
 
 %% Initial plot 
-% figure
-% plot(time,data); xlabel('Time [s]'); ylabel('mu V');
-% legend(chans)
+figure
+plot(time,data); xlabel('Time [s]'); ylabel('mu V');
+legend(chans)
 
 %% zero mean the data to remove the DC component 
 m = mean(data, 2);
