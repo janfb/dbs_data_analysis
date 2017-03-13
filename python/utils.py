@@ -36,10 +36,34 @@ def remove_50_noise(y, fs, order=2):
     :param order: the filter order, degault 2
     :return: the time series, 50Hz noise filtered out
     """
-    wn = np.array([48, 52]) / fs * 2
+    wn = np.array([49, 51]) / fs * 2
     # noinspection PyTupleAssignmentBalance
     b, a = scipy.signal.butter(order, wn, btype='bandstop')
-    return scipy.signal.lfilter(b, a, y)
+    y1 = scipy.signal.lfilter(b, a, y)
+    # filter out super harmonics
+    wn = np.array([99, 101]) / fs * 2
+    # noinspection PyTupleAssignmentBalance
+    b, a = scipy.signal.butter(order, wn, btype='bandstop')
+    y2 = scipy.signal.lfilter(b, a, y1)
+    wn = np.array([149, 151]) / fs * 2
+    # noinspection PyTupleAssignmentBalance
+    b, a = scipy.signal.butter(order, wn, btype='bandstop')
+    return scipy.signal.lfilter(b, a, y2)
+
+
+def band_pass_filter(y, fs, band=np.array([4, 45]), order=5):
+    """
+    Band-pass filter in a given frequency band
+    :param y: the time series
+    :param fs: the sampling rate
+    :param order: the filter order, degault 5
+    :param band: the frequency band to remain
+    :return: the filtered time series
+    """
+    wn = band / fs * 2
+    # noinspection PyTupleAssignmentBalance
+    b, a = scipy.signal.butter(order, wn, btype='bandpass')
+    return scipy.signal.filtfilt(b, a, y)
 
 
 def calculate_psd(y, fs):
@@ -51,7 +75,9 @@ def calculate_psd(y, fs):
     :return f: vector of frequencies
     :return psd: vector of psd
     """
-    f, psd = scipy.signal.welch(y, fs=fs, window='hamming', nperseg=1024, noverlap=0, detrend='linear')
+    window_size = 1024
+    f, psd = scipy.signal.welch(y, fs=fs, window='hamming', nperseg=window_size, noverlap=window_size / 2,
+                                detrend='linear')
     return f, psd
 
 
@@ -78,11 +104,11 @@ def find_peak_in_band(frequs, psd, band):
     """
     mask = get_array_mask(frequs > band[0], frequs < band[1])
     psd_band = psd[mask]
-    [maxtab, mintab] = peakdet(v=psd_band, delta=1e-8)
+    [maxtab, mintab] = peakdet(v=psd_band, delta=1e-10)
     # get the indices of all maxima
     indices = np.array(maxtab[:, 0], int)
     # remove the zero index if in there
-    if len(indices) > 1 and indices[0] == 0:
+    if indices[0] == 0 and indices.shape[0] > 1:
         indices = indices[1:]
     # select the maximum peak
     peak_idx = np.argmax(psd_band[indices])
