@@ -88,19 +88,36 @@ def band_pass_filter(y, fs, band=np.array([4, 45]), order=5, btype='bandpass'):
     return scipy.signal.filtfilt(b, a, y)
 
 
-def calculate_psd(y, fs):
+def calculate_psd(y, fs, window_length=1024):
     """
     Calculate the power spectral density as in the dystonia rest paper: 1024 samples per epoch, no overlap,
     linear detrending.
+    :param window_length: nperseg for welch
     :param y: time series
     :param fs: sampling rate
     :return f: vector of frequencies
     :return psd: vector of psd
     """
-    window_size = 2048
-    f, psd = scipy.signal.welch(y, fs=fs, window='hamming', nperseg=window_size, noverlap=window_size / 2,
+    f, psd = scipy.signal.welch(y, fs=fs, window='hamming', nperseg=window_length, noverlap=window_length / 2,
                                 detrend='linear')
     return f, psd
+
+
+def calculate_psd_epoching(y, fs, epoch_length=1024):
+    # calculate the largest number of epochs to be extracted
+    n_epochs = int(np.floor(y.shape[0]) / epoch_length)
+    idx = n_epochs * epoch_length
+    # cut off the vector sample that do not fit
+    y = y[:idx]
+    # reshape into epochs in rows
+    y = np.reshape(y, (n_epochs, epoch_length))
+    # calculate the psd of all epochs
+    f, psds = scipy.signal.welch(y, fs=fs, window='hamming', nperseg=epoch_length)
+    return f, psds.mean(axis=0)
+
+
+def calculate_spectrogram(y, fs):
+    return scipy.signal.spectrogram(y, fs=fs, nperseg=1024)
 
 
 def get_array_mask(cond1, *args):

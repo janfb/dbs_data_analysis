@@ -8,7 +8,7 @@ import python.utils as ut
 file_list = os.listdir(DATA_PATH)
 
 # prelocate arrays for psds and peak amplitudes
-n_frequ_samples = 1025
+n_frequ_samples = 513
 n_patients = 27
 n_electrodes = 153
 max_amp_psds_theta = np.zeros((n_patients, n_frequ_samples))
@@ -38,7 +38,7 @@ for f in file_list:
             lfp_clean = lfp # band_pass_filter(lfp, band=2, fs=fs, btype='highpass')
             # lfp_clean = remove_50_noise(lfp, fs)
             # calculate psd
-            frequs, psd = ut.calculate_psd(lfp_clean, fs)
+            frequs, psd = ut.calculate_psd_epoching(lfp_clean, fs)
 
             # normalize like in the paper: take sd of the psd between 4-45 and 55-95Hz
             mask = np.logical_or(ut.get_array_mask(frequs > 5, frequs < 45), ut.get_array_mask(frequs > 55, frequs < 95))
