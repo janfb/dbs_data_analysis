@@ -5,6 +5,28 @@ import scipy.signal
 import numpy as np
 import sys
 import pickle
+from scipy.optimize import curve_fit
+
+
+def remove_1f_component(f, psd):
+    # do log log transform, remove 1/f component via least squares fit
+    psd_log = np.log10(psd)
+    f_log = np.log10(f)
+    # set the first entry to large negative number  because it becomes infinitiy in log
+    f_log[0] = -10
+
+    # take only the data from 1-4 and 35-40 for fitting
+    mask = np.logical_or(get_array_mask(f > 1, f < 4), get_array_mask(f > 35, f < 40))
+    # fit a line
+    line = lambda a, b, x: a * x + b
+    a, b = curve_fit(line, xdata=f_log[mask], ydata=psd_log[mask])[0]
+    one_over_f_component = line(f_log, a, b)
+    # subtract that from the log transformed psd
+    psd_log -= one_over_f_component
+    # transform back
+    psd = np.power(10., psd_log)
+    f = np.power(10., f_log)
+    return f, psd
 
 
 def save_data(data_dict, filename, folder=SAVE_PATH_DATA):
@@ -51,7 +73,7 @@ def remove_50_noise(y, fs, order=2):
     return scipy.signal.lfilter(b, a, y2)
 
 
-def band_pass_filter(y, fs, band=np.array([4, 45]), order=5):
+def band_pass_filter(y, fs, band=np.array([4, 45]), order=5, btype='bandpass'):
     """
     Band-pass filter in a given frequency band
     :param y: the time series
@@ -62,7 +84,7 @@ def band_pass_filter(y, fs, band=np.array([4, 45]), order=5):
     """
     wn = band / fs * 2
     # noinspection PyTupleAssignmentBalance
-    b, a = scipy.signal.butter(order, wn, btype='bandpass')
+    b, a = scipy.signal.butter(order, wn, btype=btype)
     return scipy.signal.filtfilt(b, a, y)
 
 
@@ -75,7 +97,7 @@ def calculate_psd(y, fs):
     :return f: vector of frequencies
     :return psd: vector of psd
     """
-    window_size = 1024
+    window_size = 2048
     f, psd = scipy.signal.welch(y, fs=fs, window='hamming', nperseg=window_size, noverlap=window_size / 2,
                                 detrend='linear')
     return f, psd
@@ -106,7 +128,11 @@ def find_peak_in_band(frequs, psd, band):
     psd_band = psd[mask]
     [maxtab, mintab] = peakdet(v=psd_band, delta=1e-10)
     # get the indices of all maxima
-    indices = np.array(maxtab[:, 0], int)
+    try:
+        indices = np.array(maxtab[:, 0], int)
+    except IndexError:
+        indices = np.array([0])
+        print('Cound not find a peak, taking the first index instead!')
     # remove the zero index if in there
     if indices[0] == 0 and indices.shape[0] > 1:
         indices = indices[1:]
