@@ -6,14 +6,16 @@ import python.utils as ut
 
 
 file_list = os.listdir(DATA_PATH)
-suffix = '_linear_search'
+suffix = '_linear_search_and_amp'
 # prelocate arrays for psds and peak amplitudes
 window_length = 1024
 n_frequ_samples = int(window_length / 2 + 1)
 n_patients = 27
 n_electrodes = 153
 max_amp_psds_theta = np.zeros((n_patients, n_frequ_samples))
+max_amp_peak_theta = np.zeros(n_patients)
 max_amp_psds_beta = np.zeros((n_patients, n_frequ_samples))
+max_amp_peak_beta = np.zeros(n_patients)
 
 theta_peaks = np.zeros(n_electrodes)
 beta_peaks = np.zeros(n_electrodes)  # there are supposed to be 153 channels
@@ -51,23 +53,18 @@ for f in file_list:
             # save for later
             psds[i, ] = psd
             # find peak in theta: use the linearized spectra for finding peaks
-            idx_theta, ftheta, psd_theta = ut.find_peak_in_band(frequs, psd, [4, 12], linearize=True)
+            idx_theta, peak_amp_theta, ftheta, psd_theta = ut.find_peak_in_band(frequs, psd, [4, 12], linearize=True)
             # take the mean over peak +- 1.5Hz
-            # ignore theta peaks at the border
-            if idx_theta == 0:
-                theta_amp[i] = 0
-                theta_peaks[i_channels] = ftheta[idx_theta]
-            else:
-                surround_mask = ut.get_array_mask(frequs > (ftheta[idx_theta] - 1.5), frequs < (ftheta[idx_theta] + 1.5))
-                theta_amp[i] = np.mean(psd[surround_mask])
-                theta_peaks[i_channels] = ftheta[idx_theta]
+            # surround_mask = ut.get_array_mask(frequs > (ftheta[idx_theta] - 1.5), frequs < (ftheta[idx_theta] + 1.5))
+            theta_amp[i] = peak_amp_theta  # np.mean(psd[surround_mask])
+            theta_peaks[i_channels] = ftheta[idx_theta]
             theta_peak = psd_theta[idx_theta]
 
             # find peak in beta
-            idx_beta, fbeta, psd_beta = ut.find_peak_in_band(frequs, psd, [12, 30], linearize=True)
+            idx_beta, peak_amp_beta, fbeta, psd_beta = ut.find_peak_in_band(frequs, psd, [12, 30], linearize=True)
             surround_mask = ut.get_array_mask(frequs > (fbeta[idx_beta] - 1.5), frequs < (fbeta[idx_beta] + 1.5))
             beta_peak = psd_beta[idx_beta]
-            beta_amp[i] = np.mean(psd[surround_mask])
+            beta_amp[i] = peak_amp_beta  # np.mean(psd[surround_mask])
             beta_peaks[i_channels] = fbeta[idx_beta]
 
             # plotting
@@ -88,7 +85,10 @@ for f in file_list:
         beta_channel = np.argmax(beta_amp)
         theta_channel = np.argmax(theta_amp)
         max_amp_psds_theta[i_subjects, ] = psds[theta_channel]
+        max_amp_peak_theta[i_subjects] = ftheta[theta_channel]
+
         max_amp_psds_beta[i_subjects, ] = psds[beta_channel]
+        max_amp_peak_beta[i_subjects] = fbeta[beta_channel]
 
         # note which channel was selected
         plt.subplot(3, 2, theta_channel + 1)
@@ -97,11 +97,13 @@ for f in file_list:
         plt.title('LFP channel {}, selected beta'.format(chanlabels[i]))
 
         # save figure
-        plt.savefig(os.path.join(SAVE_PATH_FIGURES, f[:-4] + '_psd{}.pdf'.format(suffix)))
+        # plt.savefig(os.path.join(SAVE_PATH_FIGURES, f[:-4] + '_psd{}.pdf'.format(suffix)))
         # plt.show()
         plt.close()
         i_subjects += 1
 
-save_dict = dict(filelist=file_list, psd_theta=max_amp_psds_theta, psd_beta=max_amp_psds_beta, theta_peaks=theta_peaks,
-                 beta_peaks=beta_peaks, frequs=frequs, n_subjects=i_subjects, n_channels=i_channels)
+save_dict = dict(filelist=file_list, psd_theta=max_amp_psds_theta, psd_beta=max_amp_psds_beta,
+                 theta_peaks_all=theta_peaks, theta_peaks_max=max_amp_peak_theta,
+                 beta_peaks_all=beta_peaks, beta_peaks_max=max_amp_peak_beta,
+                 frequs=frequs, n_subjects=i_subjects, n_channels=i_channels)
 ut.save_data(save_dict, 'psd_maxamp_theta_beta{}.p'.format(suffix))

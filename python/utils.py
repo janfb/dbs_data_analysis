@@ -183,7 +183,16 @@ def find_peak_in_band(frequs, psd, band, linearize=False):
 
     # select the maximum peak
     peak_idx = np.argmax(psd_search[indices])
-    return indices[peak_idx], frequs_band, psd_band
+
+    # get the amplitude of that peak
+    surround_mask = get_array_mask(frequs_search > (frequs_search[indices[peak_idx]] - 1.5),
+                                   frequs_search < (frequs_search[indices[peak_idx]] + 1.5))
+    peak_amp = np.mean(psd_search[surround_mask])
+
+    # if the zero index was selected, set amplitude to zero to avoid this channel for later analysis
+    if indices[0] == 0:
+        peak_amp = 0
+    return indices[peak_idx], peak_amp, frequs_band, psd_band
 
 
 def peakdet(v, delta, x=None):

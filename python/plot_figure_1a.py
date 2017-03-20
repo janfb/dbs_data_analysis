@@ -32,8 +32,8 @@ plt.show()
 
 # plot histogram
 plt.figure(figsize=(7, 5))
-plt.hist(x=data['theta_peaks'], bins=27, range=[3, 30], label='theta')
-plt.hist(x=data['beta_peaks'], bins=27, range=[3, 30], label='beta')
+plt.hist(x=data['theta_peaks_all'], bins=27, range=[3, 30], label='theta')
+plt.hist(x=data['beta_peaks_all'], bins=27, range=[3, 30], label='beta')
 
 plt.title('Peak histogram for theta and beta')
 plt.xlabel('Frequency [Hz]')
