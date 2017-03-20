@@ -47,8 +47,8 @@ for file in file_list:
 
         # save figure
         filename_save = file[:-4] + '_spectro.pdf'
-        plt.savefig(os.path.join(SAVE_PATH_FIGURES, filename_save))
-        # plt.show()
+        # plt.savefig(os.path.join(SAVE_PATH_FIGURES, filename_save))
+        plt.show()
         plt.close()
         i_subjects += 1
 

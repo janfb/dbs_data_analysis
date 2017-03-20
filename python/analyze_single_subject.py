@@ -38,7 +38,7 @@ plt.ylabel('[$\muV]')
 plt.xlabel('time [s]')
 plt.title('contact pair GPiR23 from case 19')
 plt.legend()
-plt.savefig(os.path.join(SAVE_PATH_FIGURES, 'figure_1C.pdf'))
+# plt.savefig(os.path.join(SAVE_PATH_FIGURES, 'figure_1C.pdf'))
 plt.show()
 
 
