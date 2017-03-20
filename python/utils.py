@@ -8,12 +8,27 @@ import pickle
 from scipy.optimize import curve_fit
 
 
+def standard_error(y, axis=0):
+    """
+    Calculate the standard error of y: se = std(y) / sqrt(n)
+    :param y: array - likes, at most 2 dim
+    :param axis: axis on which to calculate the standard error
+    :return: se of y
+    """
+    assert (axis == 0 or axis == 1), ' axis can only be 0 or 1'
+    if y.ndim == 1:
+        return np.std(y) / np.sqrt(y.shape[0])
+    else:
+        return np.std(y, axis=axis) / np.sqrt(y.shape[axis])
+
+
 def remove_1f_component(f, psd):
     # do log log transform, remove 1/f component via least squares fit
     psd_log = np.log10(psd)
     f_log = np.log10(f)
     # set the first entry to large negative number  because it becomes infinitiy in log
-    f_log[0] = -10
+    if not np.isfinite(f_log[0]):
+        f_log[0] = -10
 
     # take only the data from 1-4 and 35-40 for fitting
     mask = np.logical_or(get_array_mask(f > 1, f < 4), get_array_mask(f > 35, f < 40))
@@ -133,7 +148,7 @@ def get_array_mask(cond1, *args):
     return mask
 
 
-def find_peak_in_band(frequs, psd, band):
+def find_peak_in_band(frequs, psd, band, linearize=False):
     """
     Find the maximum peak in a given range of a power spectrum
     :param frequs: the frequency vector
@@ -141,21 +156,34 @@ def find_peak_in_band(frequs, psd, band):
     :param band: a list or sequence with the range, e.g., [4, 12]
     :return: the index of the peak, the masked frequs vector, the masked psd vector
     """
+
     mask = get_array_mask(frequs > band[0], frequs < band[1])
     psd_band = psd[mask]
-    [maxtab, mintab] = peakdet(v=psd_band, delta=1e-10)
+    frequs_band = frequs[mask]
+
+    # remove 1/f component if specified
+    if linearize:
+        frequs_linear, psd_linear = remove_1f_component(frequs, psd)
+        frequs_search, psd_search = frequs_linear[mask], psd_linear[mask]
+    else:
+        frequs_search, psd_search = frequs_band, psd_band
+
+    [maxtab, _] = peakdet(v=psd_search, delta=1e-10)
+
     # get the indices of all maxima
     try:
         indices = np.array(maxtab[:, 0], int)
     except IndexError:
         indices = np.array([0])
         print('Cound not find a peak, taking the first index instead!')
+
     # remove the zero index if in there
     if indices[0] == 0 and indices.shape[0] > 1:
         indices = indices[1:]
+
     # select the maximum peak
-    peak_idx = np.argmax(psd_band[indices])
-    return indices[peak_idx], frequs[mask], psd_band
+    peak_idx = np.argmax(psd_search[indices])
+    return indices[peak_idx], frequs_band, psd_band
 
 
 def peakdet(v, delta, x=None):
