@@ -8,6 +8,25 @@ import pickle
 from scipy.optimize import curve_fit
 
 
+def coherence(x, y, fs, window_length=1024, **kwargs):
+    """
+    Calculate the coherence between values in x and in y. Note that we calculate the coherence itself and not the
+    magnitude-squared coherence that is calculated by scipy.signal.coherence. The result is therefore a vector of
+    complex calues
+    :param x: one time series
+    :param y: another time series
+    :param fs: common sampling rate
+    :param window_length: window length for Welch method
+    :param kwargs: addition arguments for Welch method
+    :return: frequency vector f and complex coherence vector
+    """
+    f, pxy = scipy.signal.csd(x, y, fs=fs, window='hamming', nperseg=window_length, **kwargs)
+    f, pxx = scipy.signal.welch(x, fs=fs, window='hamming', nperseg=window_length, **kwargs)
+    f, pyy = scipy.signal.welch(y, fs=fs, window='hamming', nperseg=window_length, **kwargs)
+
+    return f, pxy / np.sqrt(pxx * pyy)
+
+
 def standard_error(y, axis=0):
     """
     Calculate the standard error of y: se = std(y) / sqrt(n)
@@ -23,6 +42,14 @@ def standard_error(y, axis=0):
 
 
 def remove_1f_component(f, psd):
+    """
+    Remove the 1/f component of a given power spectral density. This is done by linearization of the spectrum via log-
+     transformation, then fitting a line from the 1-4Hz range to the 35-40Hz range and subtracting the line from the
+     linear spectrum and finally, by transformation back to the standard representation.
+    :param f: vector of frequency samples of the psd
+    :param psd: vector of psd values corresponding to the frequencies in f
+    :return: f and psd where the 1/f component has been subtracted
+    """
     # do log log transform, remove 1/f component via least squares fit
     psd_log = np.log10(psd)
     f_log = np.log10(f)
@@ -45,12 +72,25 @@ def remove_1f_component(f, psd):
 
 
 def save_data(data_dict, filename, folder=SAVE_PATH_DATA):
+    """
+    Save file with pickle
+    :param data_dict: dictionary holding the data
+    :param filename:
+    :param folder:
+    :return:
+    """
     full_path_to_file = os.path.join(folder, filename)
     with open(full_path_to_file, 'wb') as outfile:
         pickle.dump(data_dict, outfile, protocol=pickle.HIGHEST_PROTOCOL)
 
 
 def load_data_analysis(filename, data_folder=SAVE_PATH_DATA):
+    """
+    Load file with pickle
+    :param filename:
+    :param data_folder:
+    :return: data dictionary
+    """
     full_path = os.path.join(data_folder, filename)
     return pickle.load(open(full_path, 'rb'))
 
@@ -119,6 +159,13 @@ def calculate_psd(y, fs, window_length=1024):
 
 
 def calculate_psd_epoching(y, fs, epoch_length=1024):
+    """
+    Calculate the PSD using scipy and welch method after epoching it into epochs of epoch_length samples
+    :param y: the signal vector
+    :param fs: sampling rate
+    :param epoch_length:
+    :return: f vector, psd vector
+    """
     # calculate the largest number of epochs to be extracted
     n_epochs = int(np.floor(y.shape[0]) / epoch_length)
     idx = n_epochs * epoch_length
@@ -132,6 +179,12 @@ def calculate_psd_epoching(y, fs, epoch_length=1024):
 
 
 def calculate_spectrogram(y, fs):
+    """
+    Calculate the time-frequency decomposition of y with sampling rate fs using scipy.signal.spectrogram
+    :param y:
+    :param fs:
+    :return:
+    """
     return scipy.signal.spectrogram(y, fs=fs, nperseg=1024)
 
 
