@@ -8,11 +8,11 @@ import pickle
 from scipy.optimize import curve_fit
 
 
-def coherence(x, y, fs, window_length=1024, **kwargs):
+def coherency(x, y, fs, window_length=1024, **kwargs):
     """
-    Calculate the coherence between values in x and in y. Note that we calculate the coherence itself and not the
-    magnitude-squared coherence that is calculated by scipy.signal.coherence. The result is therefore a vector of
-    complex calues
+    Calculate the cohenrencY between values in x and in y. It is defined as the normalized cross spectral density:
+    Cij(f) = Sij(f) / (Sii(f)*Sjj(f))^1/2
+    The coherence is then defined as the absolute value of that: Coh_ij(f) = abs(Cij(f))
     :param x: one time series
     :param y: another time series
     :param fs: common sampling rate
@@ -20,9 +20,9 @@ def coherence(x, y, fs, window_length=1024, **kwargs):
     :param kwargs: addition arguments for Welch method
     :return: frequency vector f and complex coherence vector
     """
-    f, pxy = scipy.signal.csd(x, y, fs=fs, window='hamming', nperseg=window_length, **kwargs)
     f, pxx = scipy.signal.welch(x, fs=fs, window='hamming', nperseg=window_length, **kwargs)
-    f, pyy = scipy.signal.welch(y, fs=fs, window='hamming', nperseg=window_length, **kwargs)
+    _, pxy = scipy.signal.csd(x, y, fs=fs, window='hamming', nperseg=window_length, **kwargs)
+    _, pyy = scipy.signal.welch(y, fs=fs, window='hamming', nperseg=window_length, **kwargs)
 
     return f, pxy / np.sqrt(pxx * pyy)
 
