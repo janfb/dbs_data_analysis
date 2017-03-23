@@ -8,6 +8,108 @@ import pickle
 from scipy.optimize import curve_fit
 
 
+def calculate_rise_and_fall_steepness(y, extrema):
+    """
+    Calculate the rise steepness between trough and peaks and the fall steepness between peaks and troughs from the time
+    series and a list of indices of extrema.
+    :param y: time series
+    :param extrema: index list of extrema
+    :return: array of rise steepness, array of fall steepness
+    """
+    # calculate absolute instantaneous first derivative:
+    lfp_diff = np.abs(np.diff(y))
+    rise_steepness = []
+    fall_steepness = []
+
+    for idx in range(extrema[:-1].size):
+        # check whether it is trough or a peak
+        if y[extrema[idx]] < 0:  # case trough
+            # calculate rise steepness: max slope between trough and peak
+            max_slope = np.max(lfp_diff[extrema[idx]:extrema[idx + 1]])  # the next idx is a peak
+            rise_steepness.append(max_slope)
+        else:
+            # case peak
+            max_slope = np.max(lfp_diff[extrema[idx]:extrema[idx + 1]])  # the next idx is a trough
+            fall_steepness.append(max_slope)
+
+    return np.array(rise_steepness), np.array(fall_steepness)
+
+
+def find_peaks_and_troughs(y, zeros):
+    """
+    Find the indices of the minima and maxima of a array given on the basis of an array of zero crossings
+    :param y: time series
+    :param zeros: array of indices of zero crossing
+    :return: peaks, trough, arrays
+    """
+    # find the peaks in between the zeros
+    peaks = []
+    troughs = []
+    extrema = []
+
+    # for every zero
+    for idx in range(zeros[:-1].size):
+        # check whether we will have a min or max
+        sub_array = y[zeros[idx]:zeros[idx + 1]]
+        mean = np.mean(sub_array)
+        # if max, add to peak array, make sure to add the idx offset
+        if mean > 0:
+            peak_idx = np.argmax(sub_array) + zeros[idx]
+            peaks.append(peak_idx)
+            extrema.append(peak_idx)
+        # else add to trough array
+        else:
+            trough_idx = np.argmin(sub_array) + zeros[idx]
+            troughs.append(trough_idx)
+            extrema.append(trough_idx)
+
+    return np.array(peaks), np.array(troughs), np.array(extrema)
+
+
+def calculate_peak_sharpness(y, peaks, fs):
+    """
+    Calculate the sharpness of peaks given the time series, peak indices and the sampling rate
+    :param y: time series, array
+    :param peaks: indices of peaks, array
+    :param fs: sampling rate
+    :return: array of peak sharpness, same size as peaks
+    """
+    sharpness = np.zeros_like(peaks, dtype=np.float)
+    # samples for ms
+    samples_per_ms = fs / 1000
+
+    # for every peak
+    for idx, peak_idx in enumerate(peaks):
+        # get indices +-5 ms around the peak
+        precede_idx = int(peak_idx - 5 * samples_per_ms)
+        follow_idx = int(peak_idx + 5 * samples_per_ms)
+
+        # avoid index error
+        if y.size < follow_idx:
+            follow_idx = -1
+        if precede_idx < 0:
+            precede_idx = 0
+
+        # apply formula from the cole paper
+        sharpness[idx] = 0.5 * (np.abs(y[peak_idx] - y[precede_idx]) + np.abs(y[peak_idx] - y[follow_idx]))
+
+    return sharpness
+
+
+def find_rising_and_falling_zeros(y):
+    """
+    Find the zero crossings, separated in rising zeros and falling zeros
+    :param y: time series
+    :return: rising zeros indices, falling zeros indices
+    """
+    y_sign = np.sign(y)
+    y_sign_change = np.diff(y_sign)
+    zeros_falling = np.where(y_sign_change == -2)[0]
+    zeros_rising = np.where(y_sign_change == 2)[0]
+    zeros = np.where(y_sign_change != 0)[0]
+    return zeros_rising, zeros_falling, zeros
+
+
 def coherency(x, y, fs, window_length=1024, **kwargs):
     """
     Calculate the cohenrencY between values in x and in y. It is defined as the normalized cross spectral density:
@@ -140,7 +242,7 @@ def band_pass_filter(y, fs, band=np.array([4, 45]), order=5, btype='bandpass'):
     wn = band / fs * 2
     # noinspection PyTupleAssignmentBalance
     b, a = scipy.signal.butter(order, wn, btype=btype)
-    return scipy.signal.filtfilt(b, a, y)
+    return scipy.signal.lfilter(b, a, y)
 
 
 def calculate_psd(y, fs, window_length=1024):

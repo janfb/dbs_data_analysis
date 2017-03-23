@@ -20,6 +20,7 @@ file_list = [f for f in os.listdir(data_folder) if f.startswith('subject')]
 for sub, sub_file in enumerate(file_list):
     # load data
     d = ut.load_data_analysis(sub_file, data_folder=data_folder)
+    # make new entries in the dict
     d['freqs'] = {}
     d['psd'] = {}
 
