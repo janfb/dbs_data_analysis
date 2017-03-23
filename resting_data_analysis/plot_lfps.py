@@ -1,8 +1,10 @@
 import os
-import numpy as np
+
 import matplotlib.pyplot as plt
-from definitions import SAVE_PATH_FIGURES, SAVE_PATH_DATA, DATA_PATH
-from python.utils import load_data_spm, remove_50_noise, calculate_psd, band_pass_filter, get_array_mask, save_data
+import numpy as np
+
+from definitions import SAVE_PATH_FIGURES, DATA_PATH
+from utils import load_data_spm, band_pass_filter
 
 file_list = os.listdir(DATA_PATH)
 

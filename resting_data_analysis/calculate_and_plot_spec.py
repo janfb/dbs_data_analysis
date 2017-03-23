@@ -1,10 +1,10 @@
 import os
-import numpy as np
-import matplotlib.pyplot as plt
-from definitions import SAVE_PATH_FIGURES, SAVE_PATH_DATA, DATA_PATH
-import python.utils as ut
-from mpl_toolkits.mplot3d import Axes3D
 
+import matplotlib.pyplot as plt
+import numpy as np
+
+import utils as ut
+from definitions import DATA_PATH
 
 file_list = os.listdir(DATA_PATH)
 

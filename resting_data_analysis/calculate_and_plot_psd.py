@@ -1,9 +1,10 @@
 import os
-import numpy as np
-import matplotlib.pyplot as plt
-from definitions import SAVE_PATH_FIGURES, SAVE_PATH_DATA, DATA_PATH
-import python.utils as ut
 
+import matplotlib.pyplot as plt
+import numpy as np
+
+import utils as ut
+from definitions import DATA_PATH
 
 file_list = os.listdir(DATA_PATH)
 suffix = '_linear_search_and_amp'

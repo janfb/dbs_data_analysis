@@ -1,9 +1,10 @@
-import python.utils as ut
+import os
+
 import matplotlib.pyplot as plt
 import numpy as np
+
+import utils as ut
 from definitions import SAVE_PATH_FIGURES, DATA_PATH
-import scipy.signal
-import os
 
 """
 Calculate coherence between all contact pair combinations of contact from GPi left and right

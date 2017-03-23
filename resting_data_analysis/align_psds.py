@@ -1,8 +1,10 @@
-import python.utils as ut
+import os
+
 import matplotlib.pyplot as plt
 import numpy as np
+
+import utils as ut
 from definitions import SAVE_PATH_FIGURES
-import os
 
 """
 Load the data containing the normalized psds that were selected from every subject based on peak amplitude over channels

@@ -1,10 +1,10 @@
 import os
-import numpy as np
-import matplotlib.pyplot as plt
-from definitions import SAVE_PATH_FIGURES_BAROW, DATA_PATH_BAROW, SAVE_PATH_DATA_BAROW
-import python.utils as ut
-import scipy.signal
 
+import matplotlib.pyplot as plt
+import numpy as np
+
+import utils as ut
+from definitions import SAVE_PATH_FIGURES_BAROW, SAVE_PATH_DATA_BAROW
 
 """
 read raw data and filter like in the Cole paper, adapted to the data of the barow paper

@@ -1,8 +1,7 @@
-import os
-import numpy as np
 import matplotlib.pyplot as plt
-from definitions import SAVE_PATH_FIGURES, SAVE_PATH_DATA, DATA_PATH
-from python.utils import load_data_spm, remove_50_noise, calculate_psd, find_peak_in_band, get_array_mask, save_data, band_pass_filter
+import numpy as np
+
+from utils import load_data_spm, get_array_mask, band_pass_filter
 
 filename = 'spmeeg_19.mat'
 channel_name = 'GPiR23'

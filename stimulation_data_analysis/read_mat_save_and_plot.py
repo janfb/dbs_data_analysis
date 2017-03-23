@@ -1,9 +1,10 @@
 import os
-import numpy as np
-import matplotlib.pyplot as plt
-from definitions import SAVE_PATH_FIGURES_BAROW, DATA_PATH_BAROW, SAVE_PATH_DATA_BAROW
-import python.utils as ut
 
+import matplotlib.pyplot as plt
+import numpy as np
+
+import utils as ut
+from definitions import SAVE_PATH_FIGURES_BAROW, DATA_PATH_BAROW, SAVE_PATH_DATA_BAROW
 
 file_list = os.listdir(DATA_PATH_BAROW)
 save_folder = os.path.join(SAVE_PATH_DATA_BAROW, 'raw')
