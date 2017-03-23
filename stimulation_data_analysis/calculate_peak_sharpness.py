@@ -34,7 +34,7 @@ for sub, sub_file in enumerate(file_list):
         # data = data[:1000]
 
         # band pass filter in theta (or beta?)
-        frequ_range = 'theta'
+        frequ_range = 'beta'
         if frequ_range == 'theta':
             band = np.array([3, 13])
         elif frequ_range == 'beta':
