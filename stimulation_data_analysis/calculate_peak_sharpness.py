@@ -1,7 +1,5 @@
 import os
-
 import numpy as np
-
 import utils as ut
 from definitions import SAVE_PATH_DATA_BAROW
 
@@ -36,7 +34,14 @@ for sub, sub_file in enumerate(file_list):
         # data = data[:1000]
 
         # band pass filter in theta (or beta?)
-        band = np.array([3, 13])
+        frequ_range = 'theta'
+        if frequ_range == 'theta':
+            band = np.array([3, 13])
+        elif frequ_range == 'beta':
+            band = np.array([13, 30])
+        else:
+            band = None
+
         fs = d['fs'][c]
         lfp_band = ut.band_pass_filter(data, fs, band=band, order=4, btype='bandpass')
 
@@ -80,6 +85,8 @@ for sub, sub_file in enumerate(file_list):
         d['steepness'][c]['fall_average'] = mean_fall_steepness
         d['steepness'][c]['rdsr'] = rdsr
 
+        d['frequ_range'] = frequ_range
+
 
         # plt.plot(data)
         # plt.plot(lfp_band)
@@ -104,7 +111,7 @@ for sub, sub_file in enumerate(file_list):
     # remove large lfp array to save space
     d['lfp'] = None
     ut.save_data(data_dict=d,
-                 filename='subject_{}_sharpness_steepness.p'.format(d['number']),
+                 filename='subject_{}_sharpness_steepness_{}.p'.format(d['number'], frequ_range),
                  folder=save_folder)
 
     # do it for one subject only
