@@ -50,7 +50,7 @@ for i, plot_tuple in enumerate(plot_list):
 
 plt.suptitle('Extrema sharpness ratio')
 # plt.show()
-filename_figure = 'esr_{}.pdf'.format(d['number'], frequ_range)
+filename_figure = 'esr_comparison.pdf'
 plt.savefig(os.path.join(SAVE_PATH_FIGURES_BAROW, 'sharpness', filename_figure))
 
 plt.figure(figsize=(10, 7))
@@ -68,5 +68,5 @@ for i, plot_tuple in enumerate(plot_list):
 
 plt.suptitle('Rise decay steepness ratio')
 # plt.show()
-filename_figure = 'rdsr_{}.pdf'.format(d['number'], frequ_range)
+filename_figure = 'rdsr_comparison.pdf'
 plt.savefig(os.path.join(SAVE_PATH_FIGURES_BAROW, 'sharpness', filename_figure))
