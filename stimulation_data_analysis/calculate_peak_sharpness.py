@@ -34,22 +34,16 @@ for sub, sub_file in enumerate(file_list):
         # data = data[:1000]
 
         # band pass filter in theta (or beta?)
-        frequ_range = 'beta'
+        frequ_range = 'theta'
         if frequ_range == 'theta':
-            band = np.array([3, 13])
+            band = np.array([3., 13.])
         elif frequ_range == 'beta':
-            band = np.array([13, 30])
+            band = np.array([13., 30.])
         else:
             band = None
 
         fs = d['fs'][c]
-        lfp_band = ut.band_pass_filter(data, fs, band=band, order=4, btype='bandpass')
-
-        # f1, f2 = band / fs * 2
-        # filter_length = fs / band[0] * 3
-        # N = filter_length
-        # b = scipy.signal.firwin(filter_length, [f1, f2], pass_zero=False)
-        # y = scipy.signal.lfilter(b, 1., data)
+        lfp_band = ut.band_pass_filter(data, fs, band=band, plot_response=False)
 
         # find rising and falling zero crossings
         zeros_rising, zeros_falling, zeros = ut.find_rising_and_falling_zeros(lfp_band)

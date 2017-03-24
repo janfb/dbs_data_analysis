@@ -25,7 +25,7 @@ file_list = [f for f in os.listdir(data_folder) if f.startswith('spmeeg')]
 
 frequ_range = 'theta'
 if frequ_range == 'theta':
-    band = np.array([2., 14.])
+    band = np.array([4., 12.])
 elif frequ_range == 'beta':
     band = np.array([12., 30.])
 else:
@@ -50,8 +50,7 @@ for sub, sub_file in enumerate(file_list):
         lfp = d['data'][chan_idx] - d['data'][chan_idx].mean()
 
         # filter around the theta peak
-        lfp_band = ut.band_pass_filter(lfp, fs, btype='bandpass', order=4, band=band)
-        # lfp_broad = ut.band_pass_filter(lfp, fs, btype='bandpass', order=5, band=[2., 40.])
+        lfp_band = ut.band_pass_filter(lfp, fs, band=band, plot_response=False)
 
         # extract instantaneous phase
         analystic_signal = scipy.signal.hilbert(lfp_band)
@@ -62,7 +61,7 @@ for sub, sub_file in enumerate(file_list):
         subject_dict['lfp_band'][chan[0]] = lfp_band
 
         # plot
-        hist, bins = np.histogram(phase, bins=30)
+        hist, bins = np.histogram(phase, bins=60)
         radii = hist / phase.size
         theta = 0.5 * (bins[:-1] + bins[1:])
         ax = plt.subplot(2, 3, chan_idx + 1, projection='polar')
@@ -84,6 +83,6 @@ for sub, sub_file in enumerate(file_list):
     # plt.show()
 
     plt.suptitle('Instantaneous phase distribution')
-    # plt.show()
-    filename_figure = 'subject_{}_phase_histogram_{}.pdf'.format(subject_number, frequ_range)
-    plt.savefig(os.path.join(SAVE_PATH_FIGURES, 'phase', filename_figure))
+    plt.show()
+    # filename_figure = 'subject_{}_phase_histogram_{}.pdf'.format(subject_number, frequ_range)
+    # plt.savefig(os.path.join(SAVE_PATH_FIGURES, 'phase', filename_figure))
