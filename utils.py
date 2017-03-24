@@ -6,6 +6,7 @@ import numpy as np
 import sys
 import pickle
 from scipy.optimize import curve_fit
+import matplotlib.pyplot as plt
 
 
 def calculate_rise_and_fall_steepness(y, extrema):
@@ -230,19 +231,71 @@ def remove_50_noise(y, fs, order=2):
     return scipy.signal.lfilter(b, a, y2)
 
 
-def band_pass_filter(y, fs, band=np.array([4, 45]), order=5, btype='bandpass'):
+def band_pass_filter(y, fs, band=np.array([4, 45]), pass_zero=False, plot_response=False):
     """
     Band-pass filter in a given frequency band
     :param y: the time series
     :param fs: the sampling rate
-    :param order: the filter order, degault 5
     :param band: the frequency band to remain
-    :return: the filtered time series
+    :param plot_response: flag for plotting the filter response to double check the filter
+    :param pass_zero: whether to include DC: False makes it a bandpass filter, True a bandstop filter
+    :return: the filtered time series, the frequencies and the frequency response of the filter
     """
-    wn = band / fs * 2
-    # noinspection PyTupleAssignmentBalance
-    b, a = scipy.signal.butter(order, wn, btype=btype)
-    return scipy.signal.lfilter(b, a, y)
+    # get Nyquist frequency
+    nyq = fs / 2.
+    # get the number of samples per ms
+    samples_per_ms = fs / 1000.
+    # get the cycle length in samples
+    cycle_length = int(1000 / band[0] * samples_per_ms)
+    # heuristics: filter order should triple the maximal cycle length in samples
+    numtaps = 3 * cycle_length
+    # make numtaps even
+    if not numtaps % 2:
+        numtaps += 1
+    # design a FIR bandpass filter using the window method. pass-zero makes it a bandpass filter by enforcing the DC
+    # response to be 0
+    coefs = scipy.signal.firwin(numtaps=numtaps, cutoff=(band[0], band[1]), window='hamming', nyq=nyq,
+                                pass_zero=pass_zero)
+
+    # if needed, plot the filter response
+    if plot_response:
+        plot_filter_response(coefs, nyq, band)
+    # return the filtered signal
+    return scipy.signal.filtfilt(coefs, 1., y)
+
+
+def plot_filter_response(coefs, nyq, band):
+    """
+    Plot the filter response in the frequency spectrum
+    :param coefs: filter coefficients
+    :param nyq: Nyquist frequency
+    :param band: frequency band of interest
+    """
+    # calculate the response
+    freq, response = scipy.signal.freqz(coefs)
+    # plotting
+    upto = int(band[1] + 30)
+    f2 = plt.figure()
+    plt.semilogy((nyq * freq / np.pi)[:upto], np.abs(response)[:upto], label='firs')
+    plt.xlim([0, upto])
+    plt.title('Frequency response')
+    plt.xlabel('Frequency (Hz)')
+    plt.ylabel('Gain')
+    plt.grid(True)
+    plt.show()
+
+
+def band_stop_filter(y, fs, band=np.array([48, 52]), plot_response=False):
+    """
+    Design and apply a bandstop filter to remove a specific frequency content, e.g., the 50Hz noise component
+    :param y: time series
+    :param fs: sampling rate
+    :param band: band to be removed
+    :return: filtered signal
+    """
+    # just call the bandpass filter method with pass_zero=True. then the DC will be included and the filter response
+    # will be such that excludes the range in 'band'
+    return band_pass_filter(y, fs, band, pass_zero=True, plot_response=plot_response)
 
 
 def calculate_psd(y, fs, window_length=1024):
