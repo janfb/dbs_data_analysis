@@ -9,7 +9,7 @@ for every subject make a plot of histograms of sharpness of peaks and troughs
 """
 data_folder = os.path.join(SAVE_PATH_DATA, 'sharpness_steepness')
 
-band = 'theta'
+band = 'beta'
 # read all files in the data folder
 file_list = [f for f in os.listdir(data_folder) if f.endswith(band + '.p')]
 
@@ -59,7 +59,7 @@ for sub, sub_file in enumerate(file_list):
     plt.legend()
     plt.suptitle('Sharpness of the peaks and troughs in the {} waveform'.format(frequ_range))
     filename_figure = '{}_subject_{}_sharpness_histogram.pdf'.format(frequ_range, d['subject_number'])
-    # plt.savefig(os.path.join(SAVE_PATH_FIGURES, 'sharpness_steepness', filename_figure))
+    plt.savefig(os.path.join(SAVE_PATH_FIGURES, 'sharpness_steepness', filename_figure))
     # plt.show()
     plt.close()
 
@@ -76,8 +76,8 @@ plt.xlabel('steepness ratio')
 
 plt.ylabel('count')
 plt.suptitle('Histograms over all subjects and channels')
-figure_name = 'esr_rdsr_histograms.pdf'
-plt.savefig(os.path.join(SAVE_PATH_FIGURES, figure_name))
+figure_name = '{}_esr_rdsr_histograms.pdf'.format(frequ_range)
+plt.savefig(os.path.join(SAVE_PATH_FIGURES, 'sharpness_steepness', figure_name))
 plt.show()
 plt.close()
 
