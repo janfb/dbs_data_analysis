@@ -18,8 +18,8 @@ frequs = data['frequs']
 mask = ut.get_array_mask(frequs > 4, frequs < 40)
 plt.figure(figsize=(7, 5))
 # plot individual stectra
-plt.plot(frequs[mask], data['psd_beta'][:, mask].T, linewidth=.7, color='C1', alpha=.5)
-plt.plot(frequs[mask], data['psd_theta'][:, mask].T, linewidth=.7, color='C4', alpha=.5)
+# plt.plot(frequs[mask], data['psd_beta'][:, mask].T, linewidth=.7, color='C1', alpha=.5)
+# plt.plot(frequs[mask], data['psd_theta'][:, mask].T, linewidth=.7, color='C4', alpha=.5)
 
 # plot std envelope
 joined_psd_mean = np.mean(np.vstack((data['psd_theta'], data['psd_beta'])), axis=0)

@@ -23,13 +23,17 @@ save_folder = os.path.join(SAVE_PATH_DATA_BAROW, 'phase')
 # read all files in the data folder
 file_list = [f for f in os.listdir(data_folder) if f.startswith('subject')]
 
-frequ_range = 'beta'
+frequ_range = 'theta'
 if frequ_range == 'theta':
     band = np.array([4., 12.])
 elif frequ_range == 'beta':
     band = np.array([12., 30.])
 else:
     band = None
+
+# use only a certain time range of the data
+seconds = 2
+seconds_str = '{}'.format(seconds)
 
 # for every subject file
 for sub, sub_file in enumerate(file_list):
@@ -67,13 +71,22 @@ for sub, sub_file in enumerate(file_list):
         subject_dict['lfp_band'][condition] = lfp_band
         subject_dict['fs'] = fs
 
+        # use only part of the data
+        start = 4000
+        stop = start + seconds * fs
+        # seconds is -1 if the whole data shall be used
+        if seconds == -1:
+            stop = phase.size
+            seconds_str = 'all'
+        print('Using {} seconds of lfp data'.format(seconds_str))
+
         # plot
-        hist, bins = np.histogram(phase, bins=60)
+        hist, bins = np.histogram(phase[start:stop], bins=60)
         radii = hist / phase.size
         theta = 0.5 * (bins[:-1] + bins[1:])
         ax = plt.subplot(1, 3, cond_idx + 1, projection='polar')
         bars = ax.bar(theta, radii)
-        ax.set_rticks(np.round(np.linspace(0, np.max(radii), 3), 2))
+        ax.set_rticks(np.round(np.linspace(0, np.max(radii), 3), 4))
         plt.title(condition)
 
     # start = 1000
@@ -89,8 +102,8 @@ for sub, sub_file in enumerate(file_list):
     # plt.plot(phase[start:stop])
     # plt.show()
 
-    plt.suptitle('Instantaneous phase distribution')
+    plt.suptitle('Instantaneous phase distribution, {} seconds of lfp data'.format(seconds_str))
     # plt.show()
-    filename_figure = '{}_subject_{}_phase_histogram.pdf'.format(frequ_range, subject_number)
+    filename_figure = '{}_subject_{}_phase_histogram_{}.pdf'.format(frequ_range, subject_number, seconds_str)
     plt.savefig(os.path.join(SAVE_PATH_FIGURES_BAROW, 'phase', filename_figure))
     plt.close()

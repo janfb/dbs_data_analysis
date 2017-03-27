@@ -17,7 +17,7 @@ calculate instantaneous phase
 save to new dicts
 """
 
-data_folder = os.path.join(DATA_PATH)
+data_folder = os.path.join(DATA_PATH, 'good_theta')
 save_folder = os.path.join(SAVE_PATH_DATA, 'phase')
 
 # read all files in the data folder
@@ -30,6 +30,10 @@ elif frequ_range == 'beta':
     band = np.array([12., 30.])
 else:
     band = None
+
+# amount of time to be considered
+seconds = 5
+seconds_str = '{}'.format(seconds)
 
 # for every subject file
 for sub, sub_file in enumerate(file_list):
@@ -61,15 +65,21 @@ for sub, sub_file in enumerate(file_list):
             subject_dict['phase'][chan[0]] = phase
             subject_dict['lfp_band'][chan[0]] = lfp_band
 
+            # use only part of the data
+            start = 4000
+            stop = start + seconds * fs
+            # seconds is -1 if the whole data shall be used
+            if seconds == -1:
+                stop = phase.size
+                seconds_str = 'all'
             # plot
-            hist, bins = np.histogram(phase, bins=60)
-            radii = hist / phase.size
+            hist, bins = np.histogram(phase[start:stop], bins=60)
+            radii = hist / phase[start:stop].size
             theta = 0.5 * (bins[:-1] + bins[1:])
             ax = plt.subplot(2, 3, chan_idx + 1, projection='polar')
             bars = ax.bar(theta, radii)
-            ax.set_rticks(np.round(np.linspace(0, np.max(radii), 3), 2))
+            ax.set_rticks(np.round(np.linspace(0, np.max(radii), 3), 4))
             plt.title(chan[0])
-
         # start = 1000
         # stop = start + 5000
         # plt.figure(figsize=(10, 7))
@@ -83,8 +93,8 @@ for sub, sub_file in enumerate(file_list):
         # plt.plot(phase[start:stop])
         # plt.show()
 
-        plt.suptitle('Instantaneous phase distribution')
+        plt.suptitle('Instantaneous phase distribution, {} seconds of lfp data'.format(seconds_str))
         # plt.show()
-        filename_figure = '{}_subject_{}_phase_histogram.pdf'.format(frequ_range, subject_number)
+        filename_figure = '{}_subject_{}_phase_histogram_{}sec.pdf'.format(frequ_range, subject_number, seconds_str)
         plt.savefig(os.path.join(SAVE_PATH_FIGURES, 'phase', filename_figure))
         plt.close()
