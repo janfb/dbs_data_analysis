@@ -1,15 +1,20 @@
 import os
-
 import matplotlib.pyplot as plt
 import numpy as np
-
+from mpl_toolkits.mplot3d import Axes3D
 import utils as ut
-from definitions import DATA_PATH
+from definitions import DATA_PATH, SAVE_PATH_FIGURES
+
+"""
+Plot the spectogram as in the supplementary material of Neumann et al 2017 manuscript
+"""
+
 
 file_list = os.listdir(DATA_PATH)
 
 # prelocate arrays for psds and peak amplitudes
-n_frequ_samples = 513
+window_length = 1024
+n_frequ_samples = int(window_length / 2 + 1)
 n_patients = 27
 n_electrodes = 153
 
@@ -22,7 +27,7 @@ for file in file_list:
     if file.startswith('spmeeg_'):
         d = ut.load_data_spm(file)
         fs = d['fsample'][0][0]
-        chanlabels = d['chanlabels'][0]
+        channel_labels = d['chanlabels'][0]
 
         fig = plt.figure(figsize=(15, 8))
         for i, lfp in enumerate(d['data']):
@@ -33,7 +38,7 @@ for file in file_list:
             ssx_log = np.log(sxx)
 
             # define a mask and build a grid
-            mask = ut.get_array_mask(f > 4, f < 21)
+            mask = ut.get_array_mask(f > 4, f < 12)
             xgrid, ygrid = np.meshgrid(f[mask], t)
 
             # plotting
@@ -47,8 +52,8 @@ for file in file_list:
 
         # save figure
         filename_save = file[:-4] + '_spectro.pdf'
-        # plt.savefig(os.path.join(SAVE_PATH_FIGURES, filename_save))
-        plt.show()
+        plt.savefig(os.path.join(SAVE_PATH_FIGURES, filename_save))
+        # plt.show()
         plt.close()
         i_subjects += 1
 

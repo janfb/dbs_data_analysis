@@ -1,6 +1,7 @@
 import matplotlib.pyplot as plt
 import numpy as np
-
+import os
+from definitions import SAVE_PATH_FIGURES
 from utils import load_data_spm, get_array_mask, band_pass_filter
 
 filename = 'spmeeg_19.mat'
@@ -20,7 +21,7 @@ if lfp is None:
 lfp = lfp - np.mean(lfp)
 
 # filter in theta range:
-lfp_filt = band_pass_filter(y=lfp, fs=fs, band=[4, 12], order=4)
+lfp_filt = band_pass_filter(y=lfp, fs=fs, band=[4, 12], plot_response=False)
 
 # construct the time vector
 dt = 1 / fs
@@ -37,8 +38,8 @@ plt.ylabel('[$\muV]')
 plt.xlabel('time [s]')
 plt.title('contact pair GPiR23 from case 19')
 plt.legend()
-# plt.savefig(os.path.join(SAVE_PATH_FIGURES, 'figure_1C.pdf'))
-plt.show()
+plt.savefig(os.path.join(SAVE_PATH_FIGURES, 'figure_1C.pdf'))
+# plt.show()
 
 
 

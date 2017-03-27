@@ -333,14 +333,14 @@ def calculate_psd_epoching(y, fs, epoch_length=1024):
     return f, psds.mean(axis=0)
 
 
-def calculate_spectrogram(y, fs):
+def calculate_spectrogram(y, fs, window_length=1024):
     """
     Calculate the time-frequency decomposition of y with sampling rate fs using scipy.signal.spectrogram
     :param y:
     :param fs:
     :return:
     """
-    return scipy.signal.spectrogram(y, fs=fs, nperseg=1024)
+    return scipy.signal.spectrogram(y, fs=fs, nperseg=window_length)
 
 
 def get_array_mask(cond1, *args):

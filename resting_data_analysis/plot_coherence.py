@@ -40,4 +40,4 @@ plt.ylabel('coherence')
 plt.legend()
 plt.savefig(os.path.join(SAVE_PATH_FIGURES, 'coherence', 'figure4A_{}.pdf'.format(suffix)))
 # plt.show()
-
+plt.close()

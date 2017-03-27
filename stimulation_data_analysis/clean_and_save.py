@@ -26,7 +26,7 @@ for sub, sub_file in enumerate(file_list):
 
     for i, c in enumerate(d['conditions']):
         # notch filter around artefact in 24-26 Hz subharmonics of 50Hz noise
-        d['lfp'][c] = ut.band_pass_filter(d['lfp'][c], d['fs'][c], band=[23, 27], order=3, btype='stop')
+        d['lfp'][c] = ut.band_stop_filter(d['lfp'][c], d['fs'][c], band=[23, 27])
         # get psd and save it
         freqs, psd = ut.calculate_psd(d['lfp'][c], d['fs'][c])
         # interpolate between the neighboring bins to remove the dip

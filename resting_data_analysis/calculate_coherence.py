@@ -26,8 +26,9 @@ n_frequ_samples = int(window_length / 2 + 1)
 n_patients = len(files_to_process)
 n_electrodes = 153
 
-coh_mat = np.empty((n_patients, 9, n_frequ_samples))
-icoh_mat = np.empty((n_patients, 9, n_frequ_samples))
+n_combinations = 9
+coh_mat = np.empty((n_patients, n_combinations, n_frequ_samples))
+icoh_mat = np.empty((n_patients, n_combinations, n_frequ_samples))
 
 # run analysis
 for f_idx, file in enumerate(files_to_process):
@@ -84,6 +85,7 @@ for f_idx, file in enumerate(files_to_process):
         if plot_subjects:
             plt.suptitle('Coherence and imaginary coherency for subject {}'.format(f_idx + 1))
             plt.savefig(os.path.join(SAVE_PATH_FIGURES, 'coherence', file[:-4] + '_coh{}.pdf'.format(suffix)))
+            # plt.show()
             plt.close()
 
 # save data

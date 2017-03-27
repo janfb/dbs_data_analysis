@@ -2,7 +2,7 @@ import os
 import matplotlib.pyplot as plt
 import numpy as np
 import utils as ut
-from definitions import DATA_PATH
+from definitions import DATA_PATH, SAVE_PATH_FIGURES
 
 file_list = os.listdir(DATA_PATH)
 suffix = '_linear_search_and_amp'
@@ -37,8 +37,8 @@ for f in file_list:
         plt.figure(figsize=(10, 5))
         for i, lfp in enumerate(d['data']):
             # remove 50Hz noise
-            lfp_clean = lfp # band_pass_filter(lfp, band=2, fs=fs, btype='highpass')
-            # lfp_clean = remove_50_noise(lfp, fs)
+            # lfp_clean = lfp # band_pass_filter(lfp, band=2, fs=fs, btype='highpass')
+            lfp_clean = ut.band_stop_filter(lfp, fs, band=[49, 51], plot_response=False)
             # calculate psd
             frequs, psd = ut.calculate_psd(lfp_clean, fs=fs, window_length=window_length)
 
@@ -96,7 +96,7 @@ for f in file_list:
         plt.title('LFP channel {}, selected beta'.format(chanlabels[i]))
 
         # save figure
-        # plt.savefig(os.path.join(SAVE_PATH_FIGURES, f[:-4] + '_psd{}.pdf'.format(suffix)))
+        plt.savefig(os.path.join(SAVE_PATH_FIGURES, f[:-4] + '_psd{}.pdf'.format(suffix)))
         # plt.show()
         plt.close()
         i_subjects += 1
