@@ -86,7 +86,7 @@ def calculate_peak_sharpness(y, peaks, fs):
         follow_idx = int(peak_idx + 5 * samples_per_ms)
 
         # avoid index error
-        if y.size < follow_idx:
+        if y.size <= follow_idx:
             follow_idx = -1
         if precede_idx < 0:
             precede_idx = 0
