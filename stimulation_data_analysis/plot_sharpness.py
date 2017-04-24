@@ -10,7 +10,7 @@ for every subject make a plot of histograms of sharpness of peaks and troughs
 data_folder = os.path.join(SAVE_PATH_DATA_BAROW, 'analysis')
 
 # read all files in the data folder
-file_list = [f for f in os.listdir(data_folder) if f.endswith('beta.p')]
+file_list = [f for f in os.listdir(data_folder) if f.endswith('beta.p') and f.startswith('subject')]
 
 # for every subject file
 for sub, sub_file in enumerate(file_list):
@@ -36,23 +36,21 @@ for sub, sub_file in enumerate(file_list):
         troughs = d['sharpness'][c]['trough_sharpness']
         mi, ma = np.min(troughs), np.max(troughs)
         bins = np.power(10, np.linspace(np.log10(mi), np.log10(ma), n_bins))
-        plt.hist(troughs, label='troughs', alpha=.5,
-                 bins=n_bins)
+        plt.hist(np.log(troughs), label='troughs', alpha=.5, bins=20)
         # plt.gca().set_xscale("log")
 
         peaks = d['sharpness'][c]['peak_sharpness']
         mi, ma = np.min(peaks), np.max(peaks)
         bins = np.power(10, np.linspace(np.log10(mi), np.log10(ma), n_bins))
-        plt.hist(peaks, label='peaks', alpha=.5,
-                 bins=n_bins)
+        plt.hist(np.log(peaks), label='peaks', alpha=.5, bins=20)
         # plt.gca().set_xscale("log")
         # plt.hist(d['sharpness'][c]['peak_sharpness'], label='peaks', alpha=.5)
 
     plt.legend()
     plt.suptitle('Sharpness of the peaks and troughs in the {} waveform'.format(frequ_range))
     filename_figure = '{}_subject_{}_sharpness_histogram.pdf'.format(frequ_range, d['number'])
-    plt.savefig(os.path.join(SAVE_PATH_FIGURES_BAROW, 'sharpness', filename_figure))
-    # plt.show()
+    # plt.savefig(os.path.join(SAVE_PATH_FIGURES_BAROW, 'sharpness', filename_figure))
+    plt.show()
 
 
 

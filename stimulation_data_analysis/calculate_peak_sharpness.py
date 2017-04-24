@@ -30,7 +30,7 @@ for sub, sub_file in enumerate(file_list):
         d['steepness'][c] = {}
 
         # zero mean the data
-        data = d['lfp'][c] - np.mean(d['lfp'][c])
+        lfp_raw = d['lfp'][c] - np.mean(d['lfp'][c])
         # data = data[:1000]
 
         # band pass filter in theta (or beta?)
@@ -43,24 +43,25 @@ for sub, sub_file in enumerate(file_list):
             band = None
 
         fs = d['fs'][c]
-        lfp_band = ut.band_pass_filter(data, fs, band=band, plot_response=False)
+        lfp_band = ut.band_pass_filter(lfp_raw, fs, band=band, plot_response=False)
 
-        # find rising and falling zero crossings
+        # find rising and falling zero crossings using the filtered data
         zeros_rising, zeros_falling, zeros = ut.find_rising_and_falling_zeros(lfp_band)
 
-        # find the peaks in between the zeros
-        peaks, troughs, extrema = ut.find_peaks_and_troughs(lfp_band, zeros)
+        # find the peaks in between the zeros: use the RAW DATA for this step.
+        analysis_lfp = lfp_raw
+        peaks, troughs, extrema = ut.find_peaks_and_troughs(analysis_lfp, zeros)
 
         # calculate peak sharpness:
-        peak_sharpness = ut.calculate_peak_sharpness(lfp_band, peaks, fs=fs)
-        trough_sharpness = ut.calculate_peak_sharpness(lfp_band, troughs, fs=fs)
+        peak_sharpness = ut.calculate_peak_sharpness(analysis_lfp, peaks, fs=fs)
+        trough_sharpness = ut.calculate_peak_sharpness(analysis_lfp, troughs, fs=fs)
         mean_peak_sharpness = np.mean(peak_sharpness)
         mean_trough_sharpness = np.mean(trough_sharpness)
         # extrema sharpness ratio, from the paper
         esr = np.max([mean_peak_sharpness / mean_trough_sharpness, mean_trough_sharpness / mean_peak_sharpness])
 
         # calculate the steepness
-        rise_steepness, fall_steepness = ut.calculate_rise_and_fall_steepness(lfp_band, extrema)
+        rise_steepness, fall_steepness = ut.calculate_rise_and_fall_steepness(analysis_lfp, extrema)
         mean_rise_steepness = np.mean(rise_steepness)
         mean_fall_steepness = np.mean(fall_steepness)
         # rise decay steepness ratio
