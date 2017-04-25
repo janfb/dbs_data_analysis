@@ -9,6 +9,20 @@ from scipy.optimize import curve_fit
 import matplotlib.pyplot as plt
 
 
+def calculate_circular_mean(phases):
+    """
+    Calculate the circular mean vector angle and vector length from the phases. the length of the mean phase vector is 0
+    if the phases are distributed uniformly and 1 if they are all the same. The angle of the mean phase vector is the
+    average direction the phases are pointing towards. Its meaning depends on the length of the mean phase vector, e.g., 
+    it is most informative if the mean phase vector is large. 
+    :param phases: vector of phases 
+    :return: angle of the mean phase vector, length of the mean phase vector. 
+    """
+    circular_mean_vector = np.mean(np.exp(1j * phases))
+    circ_mean_angle = np.angle(circular_mean_vector)
+    circ_mean_length = np.abs(circular_mean_vector)
+    return circ_mean_angle, circ_mean_length
+
 def calculate_rise_and_fall_steepness(y, extrema):
     """
     Calculate the rise steepness between trough and peaks and the fall steepness between peaks and troughs from the time
@@ -44,9 +58,12 @@ def find_peaks_and_troughs(y, zeros):
     :return: peaks, trough, arrays
     """
     # find the peaks in between the zeros
-    peaks = []
-    troughs = []
-    extrema = []
+    peak_indices = []
+    trough_indices = []
+    extrema_indices = []
+
+    # zero mean the data to find the zero crossings
+    y -= y.mean()
 
     # for every zero
     for idx in range(zeros[:-1].size):
@@ -56,15 +73,15 @@ def find_peaks_and_troughs(y, zeros):
         # if max, add to peak array, make sure to add the idx offset
         if mean > 0:
             peak_idx = np.argmax(sub_array) + zeros[idx]
-            peaks.append(peak_idx)
-            extrema.append(peak_idx)
+            peak_indices.append(peak_idx)
+            extrema_indices.append(peak_idx)
         # else add to trough array
         else:
             trough_idx = np.argmin(sub_array) + zeros[idx]
-            troughs.append(trough_idx)
-            extrema.append(trough_idx)
+            trough_indices.append(trough_idx)
+            extrema_indices.append(trough_idx)
 
-    return np.array(peaks), np.array(troughs), np.array(extrema)
+    return np.array(peak_indices), np.array(trough_indices), np.array(extrema_indices)
 
 
 def calculate_peak_sharpness(y, peaks, fs):
