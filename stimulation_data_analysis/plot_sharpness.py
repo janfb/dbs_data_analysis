@@ -27,33 +27,22 @@ for sub, sub_file in enumerate(file_list):
     conditions = d['conditions']
     # for all three conditions
     for i in range(len(conditions)):
-        c = condition_order[i]
-        print('Condition {}'.format(c))
+        condition = condition_order[i]
+        print('Condition {}'.format(condition))
         n_bins = 30
 
         plt.subplot(1, 3, i + 1)
-        plt.title(c)
-        troughs = d['sharpness'][c]['trough_sharpness']
-        mi, ma = np.min(troughs), np.max(troughs)
-        bins = np.power(10, np.linspace(np.log10(mi), np.log10(ma), n_bins))
-        plt.hist(np.log(troughs), label='troughs', alpha=.5, bins=20)
-        # plt.gca().set_xscale("log")
-
-        peaks = d['sharpness'][c]['peak_sharpness']
-        mi, ma = np.min(peaks), np.max(peaks)
-        bins = np.power(10, np.linspace(np.log10(mi), np.log10(ma), n_bins))
-        plt.hist(np.log(peaks), label='peaks', alpha=.5, bins=20)
-        # plt.gca().set_xscale("log")
-        # plt.hist(d['sharpness'][c]['peak_sharpness'], label='peaks', alpha=.5)
+        troughs = d['sharpness'][condition]['trough_sharpness']
+        peaks = d['sharpness'][condition]['peak_sharpness']
+        plt.title('{}'.format(condition))
+        hist_troughs, bins = np.histogram(np.log(troughs), bins=30)
+        plt.hist(np.log(troughs), label='trough', alpha=.5, bins=bins)
+        plt.hist(np.log(peaks), label='peak', alpha=.5, bins=bins)
+        plt.xlabel('log sharpness')
 
     plt.legend()
     plt.suptitle('Sharpness of the peaks and troughs in the {} waveform'.format(frequ_range))
     filename_figure = '{}_subject_{}_sharpness_histogram.pdf'.format(frequ_range, d['number'])
-    # plt.savefig(os.path.join(SAVE_PATH_FIGURES_BAROW, 'sharpness', filename_figure))
-    plt.show()
-
-
-
-
-
-
+    plt.savefig(os.path.join(SAVE_PATH_FIGURES_BAROW, 'sharpness', filename_figure))
+    # plt.show()
+    plt.close()

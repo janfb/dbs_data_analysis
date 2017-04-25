@@ -16,7 +16,7 @@ coh_mat = data['coh_mat']
 icoh_mat = data['icoh_mat']
 
 # plot mean
-mask = ut.get_array_mask(f > 2, f < 30)
+mask = ut.get_array_mask(f > 1, f < 30)
 # select the channel with the largest coh
 mean = coh_mat.mean(axis=0)
 max_idx = np.argmax(np.max(mean, axis=1))
@@ -36,7 +36,7 @@ plt.fill_between(f[mask], imean + ise, imean - ise, alpha=.2, color='C1', label=
 
 plt.title('Interhemispheric coherence and imaginary coherency')
 plt.xlabel('Frequency [Hz]')
-plt.ylabel('coherence')
+plt.ylabel('Coherence')
 plt.legend()
 plt.savefig(os.path.join(SAVE_PATH_FIGURES, 'coherence', 'figure4A_{}.pdf'.format(suffix)))
 # plt.show()

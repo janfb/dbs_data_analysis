@@ -11,7 +11,7 @@ same for rdsr
 data_folder = os.path.join(SAVE_PATH_DATA_BAROW, 'analysis')
 
 # read all files in the data folder
-file_list = [f for f in os.listdir(data_folder) if f.endswith('theta.p')]
+file_list = [f for f in os.listdir(data_folder) if f.endswith('beta.p') and f.startswith('subject')]
 
 esr = dict(rest=np.zeros(len(file_list)), stim=np.zeros(len(file_list)), poststim=np.zeros(len(file_list)))
 rdsr = dict(rest=np.zeros(len(file_list)), stim=np.zeros(len(file_list)), poststim=np.zeros(len(file_list)))
@@ -67,6 +67,7 @@ for i, plot_tuple in enumerate(plot_list):
     plt.title('{} vs. {}'.format(plot_tuple[0], plot_tuple[1]))
 
 plt.suptitle('Rise decay steepness ratio')
-# plt.show()
 filename_figure = 'rdsr_comparison.pdf'
 plt.savefig(os.path.join(SAVE_PATH_FIGURES_BAROW, 'sharpness', filename_figure))
+plt.show()
+plt.close()
