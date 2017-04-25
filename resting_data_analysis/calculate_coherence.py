@@ -10,7 +10,7 @@ from definitions import SAVE_PATH_FIGURES, DATA_PATH
 Calculate coherence between all contact pair combinations of contact from GPi left and right
 """
 
-plot_subjects = False
+plot_subjects = True
 
 file_list = os.listdir(DATA_PATH)
 suffix = ''
@@ -61,7 +61,8 @@ for f_idx, file in enumerate(files_to_process):
                 # calculate coherency
                 f, cohy = ut.coherency(x, y, fs=fs)
 
-                coh, icoh = np.real(cohy), np.imag(cohy)
+                coh = np.abs(cohy)
+                icoh = np.imag(cohy)
                 coh_mat[f_idx, pair_idx, :] = coh
                 icoh_mat[f_idx, pair_idx, :] = icoh
 
