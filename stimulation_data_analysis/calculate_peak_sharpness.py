@@ -54,8 +54,8 @@ for sub, sub_file in enumerate(file_list):
         wn = np.array(band) / fs * 2
         # noinspection PyTupleAssignmentBalance
         b, a = scipy.signal.butter(2, wn, btype='bandpass')
-        # lfp_band = scipy.signal.filtfilt(b, a, lfp_raw)
-        lfp_band = ut.band_pass_filter(lfp_raw, fs, band=band, plot_response=False)
+        lfp_band = scipy.signal.filtfilt(b, a, lfp_raw)
+        # lfp_band = ut.band_pass_filter(lfp_raw, fs, band=band, plot_response=False)
         # cut the beginning and the end of the time series to avoid artifacts
         lfp_band = lfp_band[lfp_cutoff * fs: -lfp_cutoff * fs]
         lfp_band -= lfp_band.mean()
