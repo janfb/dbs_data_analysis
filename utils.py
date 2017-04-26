@@ -23,6 +23,7 @@ def calculate_circular_mean(phases):
     circ_mean_length = np.abs(circular_mean_vector)
     return circ_mean_angle, circ_mean_length
 
+
 def calculate_rise_and_fall_steepness(y, extrema):
     """
     Calculate the rise steepness between trough and peaks and the fall steepness between peaks and troughs from the time
