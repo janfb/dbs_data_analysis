@@ -3,8 +3,6 @@ import matplotlib.pyplot as plt
 import numpy as np
 import utils as ut
 from definitions import SAVE_PATH_FIGURES_BAROW, SAVE_PATH_DATA_BAROW
-import scipy.io
-import scipy.stats
 import scipy.signal
 
 """
@@ -16,6 +14,7 @@ path_to_file = '/Users/Jan/Dropbox/Master/LR_Kuehn/data/example_Cole.mat'
 save_folder = os.path.join(SAVE_PATH_DATA_BAROW, 'analysis')
 
 d = scipy.io.loadmat(path_to_file)
+
 # make new entries in the dict
 result_dict = dict(sharpness={}, steepness={}, phase={})
 frequ_range = 'beta'
