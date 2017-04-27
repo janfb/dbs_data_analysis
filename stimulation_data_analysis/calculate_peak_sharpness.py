@@ -48,25 +48,38 @@ for sub, sub_file in enumerate(file_list):
 
         # get the data
         lfp_raw = d['lfp'][c]
-
         fs = d['fs'][c]
+
+        # preprocess
+        # remove power noise
+        nyq = fs / 2
+        wn = np.array([48, 52]) / nyq
+        # noinspection PyTupleAssignmentBalance
+        b, a = scipy.signal.butter(3, wn, btype='bandstop')
+        lfp_pre = scipy.signal.lfilter(b, a, lfp_raw)
+
+        # low pass filter at 200hz, FIR, window method, numtaps = 250ms = 250 samples
+        cut_off_normalized = 200 / nyq
+        coefs = scipy.signal.firwin(numtaps=250, cutoff=cut_off_normalized)
+        lfp_pre = scipy.signal.filtfilt(coefs, 1., lfp_pre)
+        lfp_pre -= lfp_pre.mean()
+
+
         # filter
         wn = np.array(band) / fs * 2
         # noinspection PyTupleAssignmentBalance
         b, a = scipy.signal.butter(2, wn, btype='bandpass')
-        lfp_band = scipy.signal.filtfilt(b, a, lfp_raw)
+        lfp_band = scipy.signal.filtfilt(b, a, lfp_pre)
         # lfp_band = ut.band_pass_filter(lfp_raw, fs, band=band, plot_response=False)
         # cut the beginning and the end of the time series to avoid artifacts
         lfp_band = lfp_band[lfp_cutoff * fs: -lfp_cutoff * fs]
         lfp_band -= lfp_band.mean()
-        # lfp_band = ut.band_pass_filter(lfp_raw, fs, band=band, plot_response=False)
 
-        lfp_for_sharpness_anaylsis = lfp_raw - lfp_raw.mean()
         # find rising and falling zero crossings using the filtered data
-        zeros_rising, zeros_falling, zeros = ut.find_rising_and_falling_zeros(lfp_for_sharpness_anaylsis)
+        zeros_rising, zeros_falling, zeros = ut.find_rising_and_falling_zeros(lfp_band)
 
         # find the peaks in between the zeros: use the RAW DATA for this step.
-        analysis_lfp = lfp_for_sharpness_anaylsis
+        analysis_lfp = lfp_pre
         peaks, troughs, extrema = ut.find_peaks_and_troughs(analysis_lfp, zeros)
 
         # calculate peak sharpness:
@@ -131,5 +144,5 @@ plt.xticks(np.arange(3), condition_order)
 plt.ylabel('esr')
 filename_figure = '{}_esr_over_subjects.pdf'.format(frequ_range)
 plt.savefig(os.path.join(SAVE_PATH_FIGURES_BAROW, 'sharpness', filename_figure))
-# plt.show()
+plt.show()
 plt.close()
