@@ -41,22 +41,36 @@ for i, condition in enumerate(conditions):
     result_dict['phase'][condition] = {}
 
     # remove line noise
-    lfp = d[condition].squeeze()  # ut.band_stop_filter(y=d[condition].squeeze(), fs=fs, band=[58, 62])
+    lfp_raw = d[condition].squeeze()
+
+    # pre processing
+    # remove power noise
+    nyq = fs / 2
+    wn = np.array([58, 62]) / nyq
+    # noinspection PyTupleAssignmentBalance
+    b, a = scipy.signal.butter(3, wn, btype='bandstop')
+    lfp_pre = scipy.signal.lfilter(b, a, lfp_raw)
+
+    # low pass filter at 200hz, FIR, window method, numtaps = 250ms = 250 samples
+    cut_off_normalized = 200 / nyq
+    coefs = scipy.signal.firwin(numtaps=250, cutoff=cut_off_normalized)
+    lfp_pre = scipy.signal.filtfilt(coefs, 1., lfp_pre)
+    lfp_pre -= lfp_pre.mean()
 
     # filter in beta range
     wn = np.array([13, 30]) / fs * 2
     # noinspection PyTupleAssignmentBalance
     b, a = scipy.signal.butter(2, wn, btype='bandpass')
-    lfp_band= scipy.signal.filtfilt(b, a, lfp)
-    lfp_band2 = ut.band_pass_filter(y=lfp, fs=fs, band=[13, 30], plot_response=False)
+    lfp_band= scipy.signal.filtfilt(b, a, lfp_pre)
+    # lfp_band2 = ut.band_pass_filter(y=lfp_raw, fs=fs, band=[13, 30], plot_response=False)
     lfp_band = lfp_band[250:-250]
     lfp_band -= lfp_band.mean()
 
     # identify time points of rising and falling zero-crossings:
-    zeros_rising, zeros_falling, zeros = ut.find_rising_and_falling_zeros(lfp)
+    zeros_rising, zeros_falling, zeros = ut.find_rising_and_falling_zeros(lfp_band)
 
     # find the peaks in between the zeros, USING THE RAW DATA!
-    analysis_lfp = lfp
+    analysis_lfp = lfp_pre
     peaks, troughs, extrema = ut.find_peaks_and_troughs(analysis_lfp, zeros)
 
     # calculate peak sharpness:
@@ -85,7 +99,7 @@ for i, condition in enumerate(conditions):
     # filter in theta and beta to compare to pure sinusoidal shapes
     start = 5 * fs  # 5 sec offset
     stop = start + raw_sample_length * fs  # take 5 seconds only
-    lfp_raw_sample = lfp[start:stop]
+    lfp_raw_sample = lfp_pre[start:stop]
 
     result_dict['phase'][condition]['lfp_raw_sample'] = lfp_raw_sample
 
