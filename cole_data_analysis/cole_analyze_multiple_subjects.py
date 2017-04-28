@@ -74,11 +74,16 @@ for condition_idx, condition in enumerate(conditions):
         # lfp_band = ut.band_pass_filter(y=lfp_raw, fs=fs, band=[13, 30], plot_response=False)
         lfp_band = lfp_band[250:-250]
         lfp_band -= lfp_band.mean()
+        lfp_pre = lfp_pre[250:-250]
+
+        # look at the spectogram to select time periods of higher beta
+        t, burst_mask = ut.select_time_periods_of_high_power(data=lfp_pre)
+        # burst_mask = np.logical_not(np.zeros_like(lfp_pre))
 
         # calculate the circular mean of the phases of the bandpass filtered signal
         analystic_signal = scipy.signal.hilbert(lfp_band)
 
-        phase = np.unwrap(np.angle(analystic_signal))
+        phase = np.unwrap(np.angle(analystic_signal[burst_mask]))
         circular_mean_vector = np.mean(np.exp(1j * phase))
         circ_mean_angle = np.angle(circular_mean_vector)
         circ_mean_length = np.abs(circular_mean_vector)
@@ -88,10 +93,10 @@ for condition_idx, condition in enumerate(conditions):
 
         # calculate extream sharpness ratio
         # identify time points of rising and falling zero-crossings:
-        zeros_rising, zeros_falling, zeros = ut.find_rising_and_falling_zeros(lfp_band)
+        zeros_rising, zeros_falling, zeros = ut.find_rising_and_falling_zeros(lfp_band[burst_mask])
 
         # find the peaks in between the zeros, USING THE RAW DATA!
-        analysis_lfp = lfp_pre
+        analysis_lfp = lfp_pre[burst_mask]
         peaks, troughs, extrema = ut.find_peaks_and_troughs(analysis_lfp, zeros)
 
         # check the zero crossing issue
@@ -133,6 +138,6 @@ plt.plot(result_matrix_circ_mean.T, alpha=.5)
 plt.ylabel('circular mean')
 plt.legend()
 plt.xticks(range(3), conditions)
-plt.savefig(os.path.join(SAVE_PATH_FIGURES_BAROW, 'cole_example_subj1to5_IIR.pdf'))
+plt.savefig(os.path.join(SAVE_PATH_FIGURES_BAROW, 'cole_example_subj1to5_IIR_bursts.pdf'))
 # plt.show()
 plt.close()

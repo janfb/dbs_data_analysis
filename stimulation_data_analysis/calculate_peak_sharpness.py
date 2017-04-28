@@ -21,7 +21,7 @@ condition_order = ['rest', 'stim', 'poststim']
 esr_matrix = np.zeros((len(file_list), n_conditions))
 
 # band pass filter in theta (or beta?)
-frequ_range = 'beta'
+frequ_range = 'theta'
 if frequ_range == 'theta':
     band = np.array([3., 13.])
 elif frequ_range == 'beta':
@@ -64,8 +64,8 @@ for sub, sub_file in enumerate(file_list):
         lfp_pre = scipy.signal.filtfilt(coefs, 1., lfp_pre)
         lfp_pre -= lfp_pre.mean()
 
-
         # filter
+
         wn = np.array(band) / fs * 2
         # noinspection PyTupleAssignmentBalance
         b, a = scipy.signal.butter(2, wn, btype='bandpass')
@@ -74,12 +74,22 @@ for sub, sub_file in enumerate(file_list):
         # cut the beginning and the end of the time series to avoid artifacts
         lfp_band = lfp_band[lfp_cutoff * fs: -lfp_cutoff * fs]
         lfp_band -= lfp_band.mean()
+        lfp_pre = lfp_pre[lfp_cutoff * fs: -lfp_cutoff * fs]
+
+        # look at the spectogram to select time periods of higher beta
+        t, burst_mask = ut.select_time_periods_of_high_power(data=lfp_pre, band=band)
+        # burst_mask = np.logical_not(np.zeros_like(lfp_pre))
+        # plt.plot(t, lfp_pre)
+        # plt.fill_between(t, np.min(lfp_pre), np.max(lfp_pre), where=burst_mask, alpha=.4, color='red')
+        # plt.show()
 
         # find rising and falling zero crossings using the filtered data
-        zeros_rising, zeros_falling, zeros = ut.find_rising_and_falling_zeros(lfp_band)
+
+        # calculate zero crossings on band data
+        zeros_rising, zeros_falling, zeros = ut.find_rising_and_falling_zeros(lfp_band[burst_mask])
 
         # find the peaks in between the zeros: use the RAW DATA for this step.
-        analysis_lfp = lfp_pre
+        analysis_lfp = lfp_pre[burst_mask]
         peaks, troughs, extrema = ut.find_peaks_and_troughs(analysis_lfp, zeros)
 
         # calculate peak sharpness:
@@ -137,12 +147,12 @@ for sub, sub_file in enumerate(file_list):
 # plot overview over mean phase vector
 plt.figure(figsize=(8, 5))
 plt.title('Extrema sharpness ration over conditions')
-plt.plot(esr_matrix.mean(axis=0))
+plt.plot(esr_matrix.mean(axis=0), 'o-', linewidth=2)
 plt.plot(esr_matrix.T, alpha=.3)
-plt.legend(np.hstack((['mean'], np.arange(1, 17))), loc='best')
+plt.legend(np.hstack((['mean'], np.arange(1, 17))), loc=0, prop={'size': 7})
 plt.xticks(np.arange(3), condition_order)
 plt.ylabel('esr')
-filename_figure = '{}_esr_over_subjects.pdf'.format(frequ_range)
+filename_figure = '{}_esr_over_subjects_bursts.pdf'.format(frequ_range)
 plt.savefig(os.path.join(SAVE_PATH_FIGURES_BAROW, 'sharpness', filename_figure))
 plt.show()
 plt.close()

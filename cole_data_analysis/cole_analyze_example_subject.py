@@ -4,6 +4,7 @@ import numpy as np
 import utils as ut
 from definitions import SAVE_PATH_FIGURES_BAROW, SAVE_PATH_DATA_BAROW
 import scipy.signal
+from scipy import signal
 
 """
 read raw data and filter like in the Cole paper. Then analyze the waveform like in the cole paper. 
@@ -72,6 +73,14 @@ for i, condition in enumerate(conditions):
     # find the peaks in between the zeros, USING THE RAW DATA!
     analysis_lfp = lfp_pre
     peaks, troughs, extrema = ut.find_peaks_and_troughs(analysis_lfp, zeros)
+    # use cwt to find peak in raw data. not what we want because the waveform is not restricted to beta frequencies
+    # widths = np.arange(1, 20)
+    # peakind = signal.find_peaks_cwt(vector=lfp_pre, widths=widths)
+    # troughind = signal.find_peaks_cwt(vector=-lfp_pre, widths=widths)
+    # plt.plot(lfp_pre)
+    # plt.plot(peakind, lfp_pre[peakind], 'ro')
+    # plt.plot(troughind, lfp_pre[troughind], 'bo')
+    # plt.show()
 
     # calculate peak sharpness:
     peak_sharpness = ut.calculate_peak_sharpness(analysis_lfp, peaks, fs=fs)
