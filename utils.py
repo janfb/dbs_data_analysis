@@ -9,6 +9,33 @@ from scipy.optimize import curve_fit
 import matplotlib.pyplot as plt
 
 
+def select_time_periods_of_high_power(data, fs=1000, band=np.array([13, 30])):
+
+    # calculate spectrogram
+    nyq = fs / 2
+    f, t, Sxx = scipy.signal.spectrogram(x=data, fs=fs, window='hamming', nperseg=512, noverlap=256)
+    # get band mask
+    mask = get_array_mask(f > band[0], f < band[1])
+    # extract mean power in the range
+    power = Sxx[mask, :].mean(axis=0)
+    # smooth the power to select broader bursts
+    power_smooth = scipy.signal.filtfilt(scipy.signal.firwin(numtaps=int(data.size / 1000), cutoff=50 / nyq), 1., power)
+    # define a threshold to select the time periods
+    threshold = power_smooth.mean() + 1 * power_smooth.std()
+
+    # resample the arrays to meet data size
+    t2 = np.arange(0, data.size / fs, 1 / fs)
+    power_smooth2 = np.zeros_like(t2)
+    mask = get_array_mask(t2 <= t[-1])
+
+    power_smooth2[mask] = np.interp(t2[mask], t, power_smooth)
+    power_smooth2[~mask] = power_smooth[-1]
+
+    # return a mask of time periods, ignore first 2 seconds of signal
+    burst_mask = get_array_mask(power_smooth2 >= threshold)
+    return t2, burst_mask
+
+
 def calculate_circular_mean(phases):
     """
     Calculate the circular mean vector angle and vector length from the phases. the length of the mean phase vector is 0
