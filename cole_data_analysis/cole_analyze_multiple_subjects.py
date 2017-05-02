@@ -77,8 +77,8 @@ for condition_idx, condition in enumerate(conditions):
         lfp_pre = lfp_pre[250:-250]
 
         # look at the spectogram to select time periods of higher beta
-        t, burst_mask = ut.select_time_periods_of_high_power(data=lfp_pre)
-        # burst_mask = np.logical_not(np.zeros_like(lfp_pre))
+        # t, burst_mask = ut.select_time_periods_of_high_power(data=lfp_pre)
+        burst_mask = np.logical_not(np.zeros_like(lfp_pre))
 
         # calculate the circular mean of the phases of the bandpass filtered signal
         analystic_signal = scipy.signal.hilbert(lfp_band)
@@ -97,8 +97,10 @@ for condition_idx, condition in enumerate(conditions):
 
         # find the peaks in between the zeros, USING THE RAW DATA!
         analysis_lfp = lfp_pre[burst_mask]
-        peaks, troughs, extrema = ut.find_peaks_and_troughs(analysis_lfp, zeros)
-
+        peaks, troughs, extrema = ut.find_peaks_and_troughs_cole(analysis_lfp,
+                                                                 zeros=zeros,
+                                                                 rising_zeros=zeros_rising,
+                                                                 falling_zeros=zeros_falling)
         # check the zero crossing issue
         # plt.figure(figsize=(15, 5))
         # plt.plot(lfp_pre)
@@ -138,6 +140,6 @@ plt.plot(result_matrix_circ_mean.T, alpha=.5)
 plt.ylabel('circular mean')
 plt.legend()
 plt.xticks(range(3), conditions)
-plt.savefig(os.path.join(SAVE_PATH_FIGURES_BAROW, 'cole_example_subj1to5_IIR_bursts.pdf'))
-# plt.show()
+plt.savefig(os.path.join(SAVE_PATH_FIGURES_BAROW, 'cole_example_subj1to5_IIR_all.pdf'))
+plt.show()
 plt.close()

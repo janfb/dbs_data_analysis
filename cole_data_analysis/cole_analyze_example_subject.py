@@ -72,14 +72,22 @@ for i, condition in enumerate(conditions):
 
     # find the peaks in between the zeros, USING THE RAW DATA!
     analysis_lfp = lfp_pre
-    peaks, troughs, extrema = ut.find_peaks_and_troughs(analysis_lfp, zeros)
-    # use cwt to find peak in raw data. not what we want because the waveform is not restricted to beta frequencies
-    # widths = np.arange(1, 20)
-    # peakind = signal.find_peaks_cwt(vector=lfp_pre, widths=widths)
-    # troughind = signal.find_peaks_cwt(vector=-lfp_pre, widths=widths)
-    # plt.plot(lfp_pre)
-    # plt.plot(peakind, lfp_pre[peakind], 'ro')
-    # plt.plot(troughind, lfp_pre[troughind], 'bo')
+    peaks, troughs, extrema = ut.find_peaks_and_troughs_cole(analysis_lfp,
+                                                             zeros=zeros,
+                                                             rising_zeros=zeros_rising,
+                                                             falling_zeros=zeros_falling)
+
+    # debug plot
+    # upto = 10
+    # zero_idx = zeros[upto]
+    # plt.close()
+    # plt.figure(figsize=(15, 5))
+    # plt.plot(lfp_pre[:zero_idx])
+    # plt.plot(lfp_band[:zero_idx], 'o')
+    # plt.plot(zeros[:upto], lfp_band[zeros][:upto], 'go')
+    # plt.axhline(0)
+    # plt.plot(peaks[:int(upto/2)], lfp_pre[peaks][:int(upto/2)], 'ro')
+    # plt.plot(troughs[:int(upto/2)], lfp_pre[troughs][:int(upto/2)], 'bo')
     # plt.show()
 
     # calculate peak sharpness:

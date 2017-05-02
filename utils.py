@@ -80,7 +80,7 @@ def calculate_rise_and_fall_steepness(y, extrema):
 
 def find_peaks_and_troughs(y, zeros):
     """
-    Find the indices of the minima and maxima of a array given on the basis of an array of zero crossings
+    Use cwt to find the indices of the minima and maxima of a array given on the basis of an array of zero crossings.
     :param y: time series
     :param zeros: array of indices of zero crossing
     :return: peaks, trough, arrays
@@ -94,22 +94,121 @@ def find_peaks_and_troughs(y, zeros):
     y -= y.mean()
 
     # for every zero
-    for idx in range(zeros[:-1].size):
-        # check whether we will have a min or max
+    idx = 0
+    while idx < zeros.shape[0] - 1:
+        # get the sub array
         sub_array = y[zeros[idx]:zeros[idx + 1]]
-        mean = np.mean(sub_array)
-        # if max, add to peak array, make sure to add the idx offset
-        if mean > 0:
-            peak_idx = np.argmax(sub_array) + zeros[idx]
-            peak_indices.append(peak_idx)
-            extrema_indices.append(peak_idx)
-        # else add to trough array
+        # if sub array to short, skip this zero
+        skipped = False
+        if sub_array.size < 10:
+            sub_array = y[zeros[idx]:zeros[idx + 2]]
+            skipped = True
+        # center it
+        sub_array -= np.mean(sub_array)
+
+        # find peak and trough
+        widths = np.arange(1, sub_array.size / 2)  # kernel size
+        peakind = scipy.signal.find_peaks_cwt(vector=sub_array, widths=widths)
+        troughind = scipy.signal.find_peaks_cwt(vector=-sub_array, widths=widths)
+        # hack if no extrema was found
+        if len(peakind) == 0:
+            peakind = [np.argmax(sub_array)]
+        if len(troughind) == 0:
+            troughind = [np.argmin(sub_array)]
+
+        peak_idx = peakind[np.argmax(sub_array[peakind])]
+        trough_idx = troughind[np.argmin(sub_array[troughind])]
+
+        # select the index with the larger signal amplitude
+        if abs(sub_array[peak_idx]) > abs(sub_array[trough_idx]):
+            # get the global idx
+            extrema_idx = peak_idx + zeros[idx]
+            # add it to the corresp. list
+            peak_indices.append(extrema_idx)
         else:
-            trough_idx = np.argmin(sub_array) + zeros[idx]
-            trough_indices.append(trough_idx)
-            extrema_indices.append(trough_idx)
+            extrema_idx = trough_idx + zeros[idx]
+            trough_indices.append(extrema_idx)
+
+        # add to overall list
+        # extrema_idx = np.argmax(abs(sub_array)) + zeros[idx]
+        extrema_indices.append(extrema_idx)
+        idx += 1
+        if skipped:
+            idx += 1
 
     return np.array(peak_indices), np.array(trough_indices), np.array(extrema_indices)
+
+
+def advanced_peak_search(sub_array):
+    """
+    Do an advanced search for peaks by looking at the derivate of the signal 
+    :param sub_array: time series 
+    :return: 
+    """
+    sub_array -= sub_array.mean()
+    # find peak and trough
+    out = peakdet(v=sub_array, delta=1e-6)
+    # join the extrema
+    try:
+        extrema = np.vstack((out[0], out[1]))
+        if out[0].size == 0:
+            extrema = out[1]
+        elif out[1].size == 0:
+            extrema = out[0]
+        elif out[0].size == 0 and out[1].size == 0:
+            print('No extrema were found, using first idx')
+            return 0
+    # exclude zero indices
+        if extrema.size > 2:
+            extrema = extrema[extrema[:, 0] > 0, :]
+        # find extremum with largest amplitude
+        extremum_idx = extrema[np.argmax(abs(extrema[:, 1])), 0]
+    except:
+        print('No extrema were found, using first idx')
+        return 0
+    return extremum_idx
+
+
+def find_peaks_and_troughs_cole(y, zeros, rising_zeros, falling_zeros):
+    """
+    Find peaks and troughs as defined in the cole paper.
+      
+        "the time point of maximal voltage between a rising zero-crossing and a subsequent falling zero-crossing was
+        defined as the peak"
+        
+    When needed, improve the search by looking at the derivative.
+    :param y: time series 
+    :param rising_zeros: indices of rising zero crossing 
+    :param falling_zeros: ...
+    :return: indices of peaks, troughs, extrema 
+    """
+    peak_indices = []
+    trough_indices = []
+    extrema_indices = []
+    y -= y.mean()
+    # it should first look for maximum if rising zero comes first
+    peak_trough_factor = 1. if rising_zeros[0] < falling_zeros[0] else -1.
+
+    for idx, zero in enumerate(zeros[:-1]):
+        sub_array = peak_trough_factor * y[zeros[idx]:zeros[idx + 1]]
+        extrema_idx = np.argmax(sub_array)
+
+        # if the first index or the last was selected we should look more closely using the derivative
+        if (extrema_idx == 0 or extrema_idx == sub_array.size - 1) and sub_array.size > 10:
+            # do an advanced search
+            extrema_idx = advanced_peak_search(sub_array)
+
+        extrema_idx += zeros[idx]
+        if y[extrema_idx] > 0:
+            peak_indices.append(extrema_idx)
+        else:
+            trough_indices.append(extrema_idx)
+        # add to overall list
+        extrema_indices.append(extrema_idx)
+        # alternate extrema
+        peak_trough_factor *= -1
+
+    return np.array(peak_indices, dtype=int), np.array(trough_indices, dtype=int), np.array(extrema_indices, dtype=int)
 
 
 def calculate_peak_sharpness(y, peaks, fs):
@@ -150,9 +249,35 @@ def find_rising_and_falling_zeros(y):
     """
     y_sign = np.sign(y)
     y_sign_change = np.diff(y_sign)
-    zeros_falling = np.where(y_sign_change == -2)[0]
-    zeros_rising = np.where(y_sign_change == 2)[0]
     zeros = np.where(y_sign_change != 0)[0]
+
+    # double check the zeros and correct if possible
+    new_zeros = []
+    for i in range(1, zeros.shape[0] - 1):
+        # for every detected zero index check if neighbors are better and add them if yes. keep it otherwise
+        if abs(y[zeros[i] - 1]) < abs(y[zeros[i]]):
+            new_zeros.append(zeros[i] - 1)
+        elif abs(y[zeros[i] + 1]) < abs(y[zeros[i]]):
+            new_zeros.append(zeros[i] + 1)
+        else:
+            new_zeros.append(zeros[i])
+    zeros = np.unique(np.array(new_zeros))
+
+    if y[zeros[0] - 1] > 0:  # falling zero comes first
+        zeros_falling = zeros[0::2]
+        zeros_rising = zeros[1::2]
+    else:  # rising zero comes first
+        zeros_falling = zeros[1::2]
+        zeros_rising = zeros[0::2]
+
+    # # debug plot
+    # # zeros = new_zeros
+    # upto = 50
+    # plt.plot(zeros[:upto], y[zeros][:upto], '*', markersize=10)
+    # plt.plot(y[:zeros[upto]], 'o')
+    # plt.axhline(y=0)
+    # plt.title('Error = {}'.format(np.sum(np.abs(y[zeros]))))
+    # plt.show()
     return zeros_rising, zeros_falling, zeros
 
 
