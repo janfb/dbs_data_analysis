@@ -9,6 +9,20 @@ from scipy.optimize import curve_fit
 import matplotlib.pyplot as plt
 
 
+def low_pass_filter(y, fs, cutoff=200, numtaps=250):
+    """
+    Low pass filter using the window method for FIR filters 
+    :param y: time series 
+    :param fs: sampling rate
+    :param numtaps: filter length      
+    :param cutoff: cutoff frequency in Hz
+    :return: filtered time series  
+    """
+    nyq = fs / 2
+    cut_off_normalized = cutoff / nyq
+    coefs = scipy.signal.firwin(numtaps=numtaps, cutoff=cut_off_normalized)
+    return scipy.signal.filtfilt(coefs, 1., y)
+
 def select_time_periods_of_high_power(data, fs=1000, band=np.array([13, 30])):
 
     # calculate spectrogram
@@ -139,7 +153,7 @@ def find_peaks_and_troughs(y, zeros):
     return np.array(peak_indices), np.array(trough_indices), np.array(extrema_indices)
 
 
-def advanced_peak_search(sub_array):
+def advanced_peak_search(sub_array, verbose=True):
     """
     Do an advanced search for peaks by looking at the derivate of the signal 
     :param sub_array: time series 
@@ -156,7 +170,8 @@ def advanced_peak_search(sub_array):
         elif out[1].size == 0:
             extrema = out[0]
         elif out[0].size == 0 and out[1].size == 0:
-            print('No extrema were found, using first idx')
+            if not verbose:
+                print('No extrema were found, using first idx')
             return 0
     # exclude zero indices
         if extrema.size > 2:
@@ -164,7 +179,8 @@ def advanced_peak_search(sub_array):
         # find extremum with largest amplitude
         extremum_idx = extrema[np.argmax(abs(extrema[:, 1])), 0]
     except:
-        print('No extrema were found, using first idx')
+        if not verbose:
+            print('No extrema were found, using first idx')
         return 0
     return extremum_idx
 
@@ -196,7 +212,7 @@ def find_peaks_and_troughs_cole(y, zeros, rising_zeros, falling_zeros):
         # if the first index or the last was selected we should look more closely using the derivative
         if (extrema_idx == 0 or extrema_idx == sub_array.size - 1) and sub_array.size > 10:
             # do an advanced search
-            extrema_idx = advanced_peak_search(sub_array)
+            extrema_idx = int(advanced_peak_search(sub_array))
 
         extrema_idx += zeros[idx]
         if y[extrema_idx] > 0:
@@ -643,3 +659,32 @@ def peakdet(v, delta, x=None):
                 lookformax = True
 
     return np.array(maxtab), np.array(mintab)
+
+
+def calculate_cole_ratios(lfp_pre, lfp_band, fs):
+    # COLE ANALYSIS
+    # identify time points of rising and falling zero-crossings:
+    zeros_rising, zeros_falling, zeros = find_rising_and_falling_zeros(lfp_band)
+
+    # find the peaks in between the zeros, USING THE RAW DATA!
+    analysis_lfp = lfp_pre
+    peaks, troughs, extrema = find_peaks_and_troughs_cole(analysis_lfp,
+                                                             zeros=zeros,
+                                                             rising_zeros=zeros_rising,
+                                                             falling_zeros=zeros_falling)
+
+    peak_sharpness = calculate_peak_sharpness(analysis_lfp, peaks, fs=fs)
+    trough_sharpness = calculate_peak_sharpness(analysis_lfp, troughs, fs=fs)
+    mean_peak_sharpness = np.mean(peak_sharpness)
+    mean_trough_sharpness = np.mean(trough_sharpness)
+    # extrema sharpness ratio, from the paper
+    esr = np.max([mean_peak_sharpness / mean_trough_sharpness, mean_trough_sharpness / mean_peak_sharpness])
+
+    # calculate the steepness
+    rise_steepness, fall_steepness = calculate_rise_and_fall_steepness(analysis_lfp, extrema)
+    mean_rise_steepness = np.mean(rise_steepness)
+    mean_fall_steepness = np.mean(fall_steepness)
+    # rise decay steepness ratio
+    rdsr = np.max([mean_rise_steepness / mean_fall_steepness, mean_fall_steepness / mean_rise_steepness])
+
+    return esr, rdsr
