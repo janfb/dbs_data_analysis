@@ -6,6 +6,12 @@ from definitions import SAVE_PATH_FIGURES, SAVE_PATH_DATA, DATA_PATH
 import scipy.io
 import scipy.signal
 
+"""
+The matlab data is saved in files for every subject condition. one subject condition file contains channels from both 
+hemispheres. The PAC analysis results from Bernadette's analysis are saved in separate files in the same manner. 
+This script collects the lfp data and the pac results of one subject into a single dictionary and pickles it.  
+"""
+
 
 data_folder = os.path.join(DATA_PATH, 'STN_data_PAC')
 save_folder = os.path.join(DATA_PATH, 'STN_data_PAC', 'collected')

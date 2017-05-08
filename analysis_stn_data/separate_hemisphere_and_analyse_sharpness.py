@@ -6,6 +6,13 @@ from definitions import SAVE_PATH_FIGURES, SAVE_PATH_DATA, DATA_PATH
 import scipy.io
 import scipy.signal
 
+"""
+The script collect_data.py collects the data of one subject into one dictionary. This script collects the lfp data and 
+pac results of one subject hemisphere and calculates the sharpness and slope steepness ratios. It saves the sharpness 
+and pac results into one dictionary and saves this subject_hemisphere dictionary in a super 
+dictionary with subject_{ID}_{left, right} indices.
+"""
+
 
 data_folder = os.path.join(DATA_PATH, 'STN_data_PAC', 'collected')
 file_list = os.listdir(data_folder)
