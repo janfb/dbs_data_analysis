@@ -30,9 +30,9 @@ for file_idx, file in enumerate(subject_file_list):
     subject_id = super_dict['id']
 
     # collect data
-    lfp_dict = dict(off=super_dict['data_{}_OFF.mat'.format(subject_id)], on=super_dict['data_{}_ON.mat'.format(subject_id)])
-    fs = lfp_dict['on']['fsample'][0][0]
-    pac_dict = dict(off=super_dict['PAC_{}_OFF.mat'.format(subject_id)], on=super_dict['PAC_{}_ON.mat'.format(subject_id)])
+    lfp_dict = super_dict['lfp']
+    fs = super_dict['fs']
+    pac_dict = super_dict['pac']
 
     # channel labels will be same within a subject
     channel_labels = np.squeeze(lfp_dict['on']['channels'])

@@ -707,3 +707,23 @@ def exclude_outliers(x, y, n=2):
     y_out = y[np.logical_not(mask)]
 
     return x[mask], y[mask], x_out, y_out
+
+
+def smooth_with_mean_window(x, window_size=5):
+    """
+    Smooth a time series with a running average of 2*window_size bins. Uses zero padding but returns the same size.  
+    :param x: time series 
+    :param window_size: half the size of the window 
+    :return: smoothed time series 
+    """
+
+    # zero pad x
+    x_pad = np.hstack((np.zeros(window_size), x, np.zeros(window_size)))
+    smoothed_pad = np.zeros_like(x_pad)
+
+    for idx in range(x_pad.size - window_size - 1):
+        start = max(0, idx-window_size)
+        stop = min(x.size - 1, idx + window_size)
+        smoothed_pad[idx] = np.mean(x_pad[start:stop])
+
+    return smoothed_pad[window_size:-window_size]
