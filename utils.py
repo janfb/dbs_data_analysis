@@ -688,3 +688,22 @@ def calculate_cole_ratios(lfp_pre, lfp_band, fs):
     rdsr = np.max([mean_rise_steepness / mean_fall_steepness, mean_fall_steepness / mean_rise_steepness])
 
     return esr, rdsr
+
+
+def exclude_outliers(x, y, n=2):
+    """
+    Exclude outliers in x and y. The criterion is just the distance in n stds from the sample mean. If a value is extreme 
+     in x and y it is excluded. 
+    :param x: 
+    :param y: 
+    :param n: std factor 
+    :return: x y with identified outliers excluded
+    """
+    mask_x = x > (x.mean() + n * x.std())  # extreme x values
+    mask_y = y > (y.mean() + n * y.std())  # extreme y values
+
+    mask = np.logical_not(np.logical_or(mask_x, mask_y))  # NOT outliers
+    x_out = x[np.logical_not(mask)]
+    y_out = y[np.logical_not(mask)]
+
+    return x[mask], y[mask], x_out, y_out

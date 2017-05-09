@@ -125,14 +125,18 @@ for file_idx, file in enumerate(subject_file_list):
                                rdsr_mat=rdsr_mat[left_channel_idx, ],
                                pac_matrix=pac_matrix[left_channel_idx, ],
                                f_amp=pac_dict['on']['F_amp'],
-                               f_phase=pac_dict['on']['F_phase'])
+                               f_phase=pac_dict['on']['F_phase'],
+                               id=key_left,
+                               bands=bands)
 
     # select only right channels
     data_dict[key_right] = dict(esr_mat=esr_mat[right_channel_idx,],
                                 rdsr_mat=rdsr_mat[right_channel_idx,],
-                               pac_matrix=pac_matrix[right_channel_idx, ],
-                               f_amp=pac_dict['on']['F_amp'],
-                               f_phase=pac_dict['on']['F_phase'])
+                                pac_matrix=pac_matrix[right_channel_idx, ],
+                                f_amp=pac_dict['on']['F_amp'],
+                                f_phase=pac_dict['on']['F_phase'],
+                                id=key_right,
+                                bands=bands)
 
 # finally we save the big data file that contains the data for all hemispheres separately
 save_filename = 'sharpness_pac_separated_in_hemisphere_n{}.p'.format(file_idx + 1)
