@@ -8,14 +8,15 @@ import scipy.stats
 
 data_folder = os.path.join(SAVE_PATH_DATA, 'stn')
 save_folder = os.path.join(SAVE_PATH_FIGURES, 'stn')
-filename = 'sharpness_pac_separated_in_hemisphere_n12.p'
+filename = 'sharpness_pac_separated_in_hemisphere_n12_optimized_bands.p'
 
 data_dict = ut.load_data_analysis(filename, data_folder)
 n_subject_hemis = len(data_dict.keys())
 n_channels = 3
 n_bands = 2
 n_conditions = 2
-band_str = ['low beta', 'high beta']
+band_str = ['optimized band', 'high beta']
+file_addon = '_optimized_bands'
 
 pac_results = dict(per_cond_channel=np.zeros((n_bands, n_subject_hemis, n_channels, n_conditions)),
                    per_channel=np.zeros((n_bands, n_subject_hemis, n_channels)),
@@ -54,8 +55,10 @@ for hemi_idx, hemi_dict in enumerate(data_dict.values()):
     # or conditions
     # or both
 
-    bands = hemi_dict['bands']
+    bands = [[10, 20]]  # depricated but needed for indexing
+    condition_bands = hemi_dict['condition_bands']
     f_phase = hemi_dict['f_phase']
+
     # do it for every band
     for band_idx, band in enumerate(bands):
         # for PAC analysis
@@ -65,14 +68,20 @@ for hemi_idx, hemi_dict in enumerate(data_dict.values()):
         # or conditions
         # or both
 
-        # get the mask for the current band
-        phase_band_mask = ut.get_array_mask(f_phase >= band[0], f_phase <= band[1]).squeeze()
+        # the bands depends on the condition for optimized bands
+        pac_phase_band = np.zeros((n_channels, n_conditions))
+        for condition_idx in range(n_conditions):
 
-        # extract pac values for the current phase band
-        pac_phase_band = hemi_dict['pac_matrix'][:, :, :, phase_band_mask]
+            # get the mask for the current band
+            current_band = condition_bands[condition_idx]
+            phase_band_mask = ut.get_array_mask(f_phase >= current_band[0] , f_phase <= current_band[1]).squeeze()
 
-        # average over frequency amplitude and over low beta frequencies
-        pac_phase_band = pac_phase_band.mean(axis=(-2, -1))
+            # extract pac values for the current phase band and condition
+            pac_amp_phase_band = hemi_dict['pac_matrix'][:, condition_idx, :, phase_band_mask]
+            # average over amplitude and selected phase frequencies
+            pac_amp_phase_band = pac_amp_phase_band.mean(axis=(0, 2))
+
+            pac_phase_band[:, condition_idx] = pac_amp_phase_band
 
         # save per condition and channel
         pac_results['per_cond_channel'][band_idx, hemi_idx, :, :] = pac_phase_band
@@ -86,8 +95,8 @@ for hemi_idx, hemi_dict in enumerate(data_dict.values()):
         # save pac average over channels and conditions
         pac_results['per_hemi'][band_idx, hemi_idx] = pac_phase_band.mean()
 
-        # save the values of the channel with maximum PAC for every hemi and condition
         for condition_idx in range(n_conditions):
+            # save the values of the channel with maximum PAC for every hemi and condition
             # get the idx of the maximum channel for the current condition
             max_channel_idx = pac_phase_band[:, condition_idx].argmax()
             # get the corresponding pac value
@@ -181,7 +190,7 @@ for band_idx, band in enumerate(bands):
 plt.suptitle('Correlations between PAC and {} for every channel'.format(ratio_str.upper()))
 
 
-figure_filename = 'pac_{}_corr_all_channels.pdf'.format(ratio_str)
+figure_filename = 'pac_{}_corr_all_channels{}.pdf'.format(ratio_str, file_addon)
 plt.savefig(os.path.join(save_folder, figure_filename))
 plt.show()
 plt.close()
@@ -232,7 +241,7 @@ for band_idx, band in enumerate(bands):
     print('across subject and conditions, {}, selected channels'.format(band), r)
 
 plt.suptitle('Correlations between PAC and {} for maximum PAC channels'.format(ratio_str.upper()))
-figure_filename = 'pac_{}_corr_max_channels.pdf'.format(ratio_str)
+figure_filename = 'pac_{}_corr_max_channels{}.pdf'.format(ratio_str, file_addon)
 plt.savefig(os.path.join(save_folder, figure_filename))
 plt.show()
 plt.close()
@@ -283,7 +292,7 @@ for band_idx, band in enumerate(bands):
     print('across subject, channels and conditions, {}'.format(band), r)
 
 plt.suptitle('Correlations between PAC and {} pooled across channels and conditions'.format(ratio_str.upper()))
-figure_filename = 'pac_{}_corr_pooled.pdf'.format(ratio_str)
+figure_filename = 'pac_{}_corr_pooled{}.pdf'.format(ratio_str, file_addon)
 plt.savefig(os.path.join(save_folder, figure_filename))
 plt.show()
 plt.close()

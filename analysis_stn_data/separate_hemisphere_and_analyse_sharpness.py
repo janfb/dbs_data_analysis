@@ -47,7 +47,7 @@ for file_idx, file in enumerate(subject_file_list):
     conditions = ['off', 'on']
     n_conditions = len(conditions)
     n_channels = len(lfp_dict['on']['channels'])
-    bands = [[11, 22], [18, 32]]
+    bands = [[11, 22]]
     n_bands = len(bands)
 
     esr_mat = np.zeros((n_channels, n_bands, n_conditions, 2))  # last dim is for mean, std
@@ -66,6 +66,11 @@ for file_idx, file in enumerate(subject_file_list):
 
             channel_lfp = condition_dict['data'][channel_idx]
 
+            # the customized freqeuncy bands are saved per hemisphere, therefore we have to find out the current hemi
+            current_hemi = 'left' if channel_label in left_channels else 'right'
+            # the frequency bands are also different for conditions, pick the current one.
+            current_band = super_dict['bands'][current_hemi][condition_idx]
+
             # filter in low and high beta band
             for band_idx, band in enumerate(bands):
 
@@ -79,7 +84,7 @@ for file_idx, file in enumerate(subject_file_list):
                     lfp_pre = ut.low_pass_filter(y=epoch, fs=fs, cutoff=200)
 
                     # band pass filter
-                    lfp_band = ut.band_pass_filter(y=lfp_pre, fs=fs, band=band, plot_response=False)
+                    lfp_band = ut.band_pass_iir(y=lfp_pre, fs=fs, band=current_band)
                     # remove potential ringing artifacts
                     idx_167ms = int((fs / 1000) * 167)
                     lfp_band = lfp_band[idx_167ms:-idx_167ms]
@@ -127,7 +132,7 @@ for file_idx, file in enumerate(subject_file_list):
                                f_amp=pac_dict['on']['F_amp'],
                                f_phase=pac_dict['on']['F_phase'],
                                id=key_left,
-                               bands=bands)
+                               condition_bands=super_dict['bands']['left'])
 
     # select only right channels
     data_dict[key_right] = dict(esr_mat=esr_mat[right_channel_idx,],
@@ -136,8 +141,8 @@ for file_idx, file in enumerate(subject_file_list):
                                 f_amp=pac_dict['on']['F_amp'],
                                 f_phase=pac_dict['on']['F_phase'],
                                 id=key_right,
-                                bands=bands)
+                                condition_bands=super_dict['bands']['right'])
 
 # finally we save the big data file that contains the data for all hemispheres separately
-save_filename = 'sharpness_pac_separated_in_hemisphere_n{}.p'.format(file_idx + 1)
+save_filename = 'sharpness_pac_separated_in_hemisphere_n{}_optimized_bands.p'.format(file_idx + 1)
 ut.save_data(data_dict, filename=save_filename, folder=save_folder)

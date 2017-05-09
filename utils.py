@@ -9,6 +9,20 @@ from scipy.optimize import curve_fit
 import matplotlib.pyplot as plt
 
 
+def band_pass_iir(y, fs, band):
+    """
+    Do band pass filtering with a IIR filter. 
+    :param y: time series 
+    :param fs: sampling rate 
+    :param band: frequency band 
+    :return: filtered signal
+    """
+    nyq = fs / 2
+    wn = np.array(band) / nyq
+    # noinspection PyTupleAssignmentBalance
+    b, a = scipy.signal.butter(2, wn, btype='bandpass')
+    return scipy.signal.filtfilt(b, a, y)
+
 def low_pass_filter(y, fs, cutoff=200, numtaps=250):
     """
     Low pass filter using the window method for FIR filters 
@@ -22,6 +36,7 @@ def low_pass_filter(y, fs, cutoff=200, numtaps=250):
     cut_off_normalized = cutoff / nyq
     coefs = scipy.signal.firwin(numtaps=numtaps, cutoff=cut_off_normalized)
     return scipy.signal.filtfilt(coefs, 1., y)
+
 
 def select_time_periods_of_high_power(data, fs=1000, band=np.array([13, 30])):
 
