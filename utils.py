@@ -727,3 +727,24 @@ def smooth_with_mean_window(x, window_size=5):
         smoothed_pad[idx] = np.mean(x_pad[start:stop])
 
     return smoothed_pad[window_size:-window_size]
+
+
+def calculate_mean_phase_amplitude(lfp_band, fs):
+
+    # calculate the circular mean of the phases of the bandpass filtered signal
+
+    # get the analytic signal
+    analystic_signal = scipy.signal.hilbert(lfp_band)
+
+    # get the instantaneous phase over time
+    phase = np.unwrap(np.angle(analystic_signal))
+
+    # sum up and average the phase vectors on the unit circle
+    circular_mean_vector = np.mean(np.exp(1j * phase))
+
+    # take the angle of this circular mean phase vector
+    circ_mean_angle = np.angle(circular_mean_vector)
+    # and the amplitude
+    circ_mean_length = np.abs(circular_mean_vector)
+
+    return circ_mean_length, circ_mean_angle
