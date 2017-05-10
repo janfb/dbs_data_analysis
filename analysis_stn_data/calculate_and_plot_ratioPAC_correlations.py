@@ -73,6 +73,7 @@ for hemi_idx, hemi_dict in enumerate(data_dict.values()):
 
         # average over frequency amplitude and over low beta frequencies
         pac_phase_band = pac_phase_band.mean(axis=(-2, -1))
+        # pac_phase_band now has shape (channels x conditions)
 
         # save per condition and channel
         pac_results['per_cond_channel'][band_idx, hemi_idx, :, :] = pac_phase_band
@@ -284,6 +285,58 @@ for band_idx, band in enumerate(bands):
 
 plt.suptitle('Correlations between PAC and {} pooled across channels and conditions'.format(ratio_str.upper()))
 figure_filename = 'pac_{}_corr_pooled.pdf'.format(ratio_str)
+plt.savefig(os.path.join(save_folder, figure_filename))
+plt.show()
+plt.close()
+
+"""
+Make a figure for correlations pooled over subjects and conditions, averaged over channels. 
+"""
+
+plt.figure(figsize=(10, 5))
+plot_idx = 0
+for band_idx, band in enumerate(bands):
+    x = ratio_matrix['per_condition'][band_idx, ].flatten()
+    y = pac_results['per_condition'][band_idx, ].flatten()
+    slope, bias, r, p, stderr = scipy.stats.linregress(x, y)
+    r = round(r, 2)
+    p = round(p, 3)
+
+    plot_idx += 1
+    plt.subplot(1, n_bands, plot_idx)
+    # extract data for every condition separately for scatter plot
+    plt.plot(ratio_matrix['per_condition'][band_idx, :, 0].flatten(),
+             pac_results['per_condition'][band_idx, :, 0].flatten(), '*', markersize=5, label='off')
+    plt.plot(ratio_matrix['per_condition'][band_idx, :, 1].flatten(),
+             pac_results['per_condition'][band_idx, :, 1].flatten(), '*', markersize=5, label='on')
+    plt.xlabel(ratio_str)
+
+    if plot_idx == 1:
+        plt.ylabel('mean pac')
+
+    # fit a line
+    xvals = np.linspace(x.min(), x.max(), x.size)
+    plt.plot(xvals, bias + slope * xvals, label='r={}, p={}'.format(r, p))
+
+    # plot the regression line with outliers removed
+    x, y, x_out, y_out = ut.exclude_outliers(x, y, n=outlier_std_factor)  # use n times std away from mean as criterion
+    # plot the outliers
+    plt.plot(x_out, y_out, '+', color='C3', markersize=7)
+
+    # plot the new regression line
+    slope, bias, r, p, stderr = scipy.stats.linregress(x, y)
+    xvals = np.linspace(x.min(), x.max(), x.size)
+    plt.plot(xvals, bias + slope * xvals, label='r={}, p={}, cleaned'.format(round(r, 2), round(p, 3)))
+
+    plt.legend(loc=1, prop={'size': 7})
+    plt.ylim([0.007, 0.026])
+    plt.xlim([1.04, 1.15])
+    plt.title('{}'.format(band_str[band_idx]))
+
+    print('across subject and conditions, averaged channels, {}'.format(band), r)
+
+plt.suptitle('Correlations between PAC and {} pooled across conditions, averaged over channels'.format(ratio_str.upper()))
+figure_filename = 'pac_{}_corr_channel_average.pdf'.format(ratio_str)
 plt.savefig(os.path.join(save_folder, figure_filename))
 plt.show()
 plt.close()
