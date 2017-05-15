@@ -21,11 +21,12 @@ subject_list = ['DF', 'DP', 'JA', 'JB', 'DS', 'JN', 'JP', 'LM', 'MC', 'MW', 'SW'
 
 for subject_id in subject_list:
 
+    # get all mat files with the file with the subject ID
     subject_file_list = [file for file in file_list if subject_id in file and file.endswith('.mat')]
 
     super_dict = dict()
 
-    # for every subject there should 4 files
+    # for every subject there should be 6 files: lfp, pac and significance-pac files for ON and OFF conditions.
     for file_idx, file in enumerate(subject_file_list):
         super_dict[file] = scipy.io.loadmat(os.path.join(data_folder, file))
 
@@ -33,8 +34,12 @@ for subject_id in subject_list:
     lfp_dict = dict(off=super_dict['data_{}_OFF.mat'.format(subject_id)],
                     on=super_dict['data_{}_ON.mat'.format(subject_id)])
     fs = lfp_dict['on']['fsample'][0][0]
+
     pac_dict = dict(off=super_dict['PAC_{}_OFF.mat'.format(subject_id)],
                     on=super_dict['PAC_{}_ON.mat'.format(subject_id)])
+
+    sig_dict = dict(off=super_dict['signPAC_{}_OFF.mat'.format(subject_id)],
+                    on=super_dict['signPAC_{}_ON.mat'.format(subject_id)])
 
     # extract the left and right hemisphere channels
     # channel labels will be same within a subject
@@ -55,64 +60,83 @@ for subject_id in subject_list:
     n_amplitude = pac_dict['on']['F_amp'].size
     n_phase = pac_dict['on']['F_phase'].size
 
-    # prelocat the pac matrix over all channels because we have to iterate over conditions first
+    # prelocate the pac matrix over all channels because we have to iterate over conditions first
     pac_matrix = np.zeros((len(channel_labels), n_conditions, n_amplitude, n_phase))
+    # and the significance matrix, a logical of the same shape indicatiing permutation test significance for every bin
+    sig_matrix = np.zeros((len(channel_labels), n_conditions, n_amplitude, n_phase))
 
     # iterate over conditions
     for condition_idx, condition in enumerate(conditions):
         # get the data dict of the current condition
-        condition_dict = pac_dict[condition]
+        pac_condition_dict = pac_dict[condition]
+        sig_condition_dict = sig_dict[condition]
 
         # extract data only for the current hemisphere channels
         for channel_idx, channel_string in enumerate(channel_labels):
-            channel_key = 'PAC_{}'.format(channel_string)
-            pac_matrix[channel_idx, condition_idx,] = condition_dict[channel_key]
+            pac_channel_key = 'PAC_{}'.format(channel_string)
+            sig_channel_key = 'signPAC_{}'.format(channel_string)
+            pac_matrix[channel_idx, condition_idx, ] = pac_condition_dict[pac_channel_key]
+            sig_matrix[channel_idx, condition_idx, ] = sig_condition_dict[sig_channel_key]
 
     # look at the pac data and select useful frequency ranges for every condition, hemisphere and mean channel
     # look at left and right values separately
-    pac_left = pac_matrix[left_channel_idx, ].mean(axis=(0, 2))  # mean over channels within a hemisphere
-    pac_right = pac_matrix[right_channel_idx, ].mean(axis=(0, 2))  # , and over amp f?
-    # new shape: (phase-f)
+    pac_phase = pac_matrix.mean(axis=2)  # average over amplitude frequencies
+    # new shape: (hemi_channels, conditions, phase-f)
 
     # goal: find bands for every hemisphere
-    bands = dict(left=[], right=[])
-    for condition_idx, condition in enumerate(conditions):
+    bands = dict(left=dict(), right=dict())
+    frequency_range_halflength = 6
+    # have a matrix for significance flag
+    significant_pac = np.zeros((len(channel_labels), n_conditions))
+    # set a threshold for the locigal mean over amplitude frequencies
+    sig_threshold = 0.3
 
-        # for left
-        # consider reasonable beta range
-        mask = ut.get_array_mask(f_phase > 10, f_phase < 40).squeeze()
-        f_mask = f_phase[mask]
-        data = pac_left[condition_idx, mask]
-        # smooth the mean PAC
-        smoother_pac_left = ut.smooth_with_mean_window(data, window_size=5)
-        max_idx = np.argmax(smoother_pac_left)
+    # for every channel and condition in each condition, select a good PAC phase frequency range
+    for channel_idx, channel_label in enumerate(channel_labels):
 
-        # plt.subplot(1, 2, 1)
-        # plt.title('Subject {}, {}'.format(subject_id, 'left'))
-        # plt.plot(f_mask, data, alpha=.5)
-        # plt.plot(f_mask, smoother_pac_left, label=condition)
-        # plt.plot(f_mask[max_idx], smoother_pac_left[max_idx], 'ro')
-        # plt.legend()
-        # select the band +-5 Hz around the peak
-        bands['left'].append([f_mask[max_idx]-5, f_mask[max_idx] + 5])
+        # the customized freqeuncy bands are saved per hemisphere, therefore we have to find out the current hemi
+        current_hemi = 'left' if channel_label in left_channels else 'right'
 
-        # for right
-        data = pac_right[condition_idx, mask]
-        smoother_pac_right = ut.smooth_with_mean_window(data)
-        max_idx = np.argmax(smoother_pac_right)
+        # add a new list for condition bands of the current channel
+        bands[current_hemi][channel_label] = []
 
-        # plt.subplot(1, 2, 2)
-        # plt.title('Subject {}, {}'.format(subject_id, 'right'))
-        # plt.plot(f_mask, data, alpha=.5)
-        # plt.plot(f_mask, smoother_pac_right, label=condition)
-        # plt.plot(f_mask[max_idx], smoother_pac_right[max_idx], 'ro', markersize=5)
-        # plt.legend()
-        # select the band +-5 Hz around the peak
-        bands['right'].append([f_mask[max_idx] - 5, f_mask[max_idx] + 5])
-    # plt.show()
+        for condition_idx, condition in enumerate(conditions):
+
+            # consider reasonable beta range
+            mask = ut.get_array_mask(f_phase > 10, f_phase < 40).squeeze()
+            f_mask = f_phase[mask]
+            data = pac_phase[channel_idx, condition_idx, mask]
+            # smooth the mean PAC
+            smoother_pac = ut.smooth_with_mean_window(data, window_size=5)
+            max_idx = np.argmax(smoother_pac)
+            # sum logical significance values across the amplitude frequency dimension
+            current_sig = sig_matrix[channel_idx, condition_idx, :, mask].mean(axis=1)  # should be shape (61,)
+            if np.max(current_sig) > sig_threshold:
+                significant_pac[channel_idx, condition_idx] = 1
+
+            # # plot both, the sig and the smoothed pac mean
+            # plt.subplot(311)
+            # plt.plot(current_sig)
+            # plt.subplot(312)
+            # plt.plot(smoother_pac)
+            # plt.subplot(313)
+            # plt.imshow(pac_matrix[channel_idx, condition_idx,], origin='lower')
+            # plt.show()
+
+            # plt.subplot(1, 2, 1)
+            # plt.title('Subject {}, {}'.format(subject_id, 'left'))
+            # plt.plot(f_mask, data, alpha=.5)
+            # plt.plot(f_mask, smoother_pac_left, label=condition)
+            # plt.plot(f_mask[max_idx], smoother_pac_left[max_idx], 'ro')
+            # plt.legend()
+            # select the band +-5 Hz around the peak
+
+            bands[current_hemi][channel_label].append([f_mask[max_idx]- frequency_range_halflength,
+                                                       f_mask[max_idx] + frequency_range_halflength])
 
     # save them in a dict and save the dict to disk
-    subject_dict = dict(lfp=lfp_dict, pac=pac_dict, pac_matrix=pac_matrix, id=subject_id, fs=fs, bands=bands)
+    subject_dict = dict(lfp=lfp_dict, pac=pac_dict, pac_matrix=pac_matrix, id=subject_id, fs=fs, bands=bands,
+                        conditions=conditions, channel_labels=channel_labels, sig_flag_matrix=significant_pac)
     print(bands)
     file_name = 'subject_{}_lfp_and_pac.p'.format(subject_id)
     ut.save_data(subject_dict, file_name, save_folder)
