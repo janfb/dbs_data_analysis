@@ -52,6 +52,7 @@ for file_idx, file in enumerate(subject_file_list):
 
     esr_mat = np.zeros((n_channels, n_bands, n_conditions, 2))  # last dim is for mean, std
     rdsr_mat = np.zeros((n_channels, n_bands, n_conditions, 2))
+    meanPhaseVec_mat = np.zeros((n_channels, n_bands, n_conditions, 2))  # last to dims for amplitude and angle
 
     for condition_idx, condition in enumerate(conditions):
         # get the data dict of the current condition
@@ -76,9 +77,12 @@ for file_idx, file in enumerate(subject_file_list):
 
                 esr = np.zeros(n_epochs)
                 rdsr = np.zeros(n_epochs)
+                mpl = np.zeros(n_epochs)  # mean phase vector length
+                mpa = np.zeros(n_epochs)  # amplitude
 
                 # for every epoch
                 for epoch_idx, epoch in enumerate(channel_lfp.T):
+
                     # do preprocessing a la Cole et al
                     # low pass filter
                     lfp_pre = ut.low_pass_filter(y=epoch, fs=fs, cutoff=200)
@@ -93,11 +97,18 @@ for file_idx, file in enumerate(subject_file_list):
                     lfp_pre = lfp_pre[idx_167ms: -idx_167ms]
                     lfp_pre -= lfp_pre.mean()
 
+                    # debug plot, check artifacts
+                    # if subject_id == 'DP':
+                    #     plt.plot(lfp_pre)
+                    #     plt.show()
+
                     # calculate the sharpness and steepness ratios
                     esr[epoch_idx], rdsr[epoch_idx] = ut.calculate_cole_ratios(lfp_pre, lfp_band, fs)
+                    mpl[epoch_idx], mpa[epoch_idx] = ut.calculate_mean_phase_amplitude(lfp_band, fs)
 
                 esr_mat[channel_idx, band_idx, condition_idx, :] = esr.mean(), esr.std()
                 rdsr_mat[channel_idx, band_idx, condition_idx, :] = rdsr.mean(), rdsr.std()
+                meanPhaseVec_mat[channel_idx, band_idx, condition_idx, :] = mpl.mean(), mpa.mean()
 
     # now we have a matrix with channels x bands x conditions x (mean, std) for one subject
 
@@ -129,6 +140,7 @@ for file_idx, file in enumerate(subject_file_list):
     data_dict[key_left] = dict(esr_mat=esr_mat[left_channel_idx, ],
                                rdsr_mat=rdsr_mat[left_channel_idx, ],
                                pac_matrix=pac_matrix[left_channel_idx, ],
+                               meanPhaseVec_mat=meanPhaseVec_mat[left_channel_idx, ],
                                f_amp=pac_dict['on']['F_amp'],
                                f_phase=pac_dict['on']['F_phase'],
                                id=key_left,
@@ -138,6 +150,7 @@ for file_idx, file in enumerate(subject_file_list):
     data_dict[key_right] = dict(esr_mat=esr_mat[right_channel_idx,],
                                 rdsr_mat=rdsr_mat[right_channel_idx,],
                                 pac_matrix=pac_matrix[right_channel_idx, ],
+                                meanPhaseVec_mat=meanPhaseVec_mat[right_channel_idx,],
                                 f_amp=pac_dict['on']['F_amp'],
                                 f_phase=pac_dict['on']['F_phase'],
                                 id=key_right,

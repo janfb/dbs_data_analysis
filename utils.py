@@ -702,6 +702,19 @@ def calculate_cole_ratios(lfp_pre, lfp_band, fs):
     # rise decay steepness ratio
     rdsr = np.max([mean_rise_steepness / mean_fall_steepness, mean_fall_steepness / mean_rise_steepness])
 
+    # debug plot
+    # upto = 10
+    # zero_idx = zeros[upto]
+    # plt.close()
+    # plt.figure(figsize=(15, 5))
+    # plt.plot(lfp_pre[:zero_idx])
+    # plt.plot(lfp_band[:zero_idx], 'o')
+    # plt.plot(zeros[:upto], lfp_band[zeros][:upto], 'go')
+    # plt.axhline(0)
+    # plt.plot(peaks[:int(upto/2)], lfp_pre[peaks][:int(upto/2)], 'ro')
+    # plt.plot(troughs[:int(upto/2)], lfp_pre[troughs][:int(upto/2)], 'bo')
+    # plt.show()
+
     return esr, rdsr
 
 
@@ -718,10 +731,11 @@ def exclude_outliers(x, y, n=2):
     mask_y = y > (y.mean() + n * y.std())  # extreme y values
 
     mask = np.logical_not(np.logical_or(mask_x, mask_y))  # NOT outliers
+    # get the outliers as well
     x_out = x[np.logical_not(mask)]
     y_out = y[np.logical_not(mask)]
 
-    return x[mask], y[mask], x_out, y_out
+    return x[mask], y[mask], x_out, y_out, mask
 
 
 def smooth_with_mean_window(x, window_size=5):
@@ -742,3 +756,24 @@ def smooth_with_mean_window(x, window_size=5):
         smoothed_pad[idx] = np.mean(x_pad[start:stop])
 
     return smoothed_pad[window_size:-window_size]
+
+
+def calculate_mean_phase_amplitude(lfp_band, fs):
+
+    # calculate the circular mean of the phases of the bandpass filtered signal
+
+    # get the analytic signal
+    analystic_signal = scipy.signal.hilbert(lfp_band)
+
+    # get the instantaneous phase over time
+    phase = np.unwrap(np.angle(analystic_signal))
+
+    # sum up and average the phase vectors on the unit circle
+    circular_mean_vector = np.mean(np.exp(1j * phase))
+
+    # take the angle of this circular mean phase vector
+    circ_mean_angle = np.angle(circular_mean_vector)
+    # and the amplitude
+    circ_mean_length = np.abs(circular_mean_vector)
+
+    return circ_mean_length, circ_mean_angle
