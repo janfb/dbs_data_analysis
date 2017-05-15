@@ -687,6 +687,19 @@ def calculate_cole_ratios(lfp_pre, lfp_band, fs):
     # rise decay steepness ratio
     rdsr = np.max([mean_rise_steepness / mean_fall_steepness, mean_fall_steepness / mean_rise_steepness])
 
+    # debug plot
+    # upto = 10
+    # zero_idx = zeros[upto]
+    # plt.close()
+    # plt.figure(figsize=(15, 5))
+    # plt.plot(lfp_pre[:zero_idx])
+    # plt.plot(lfp_band[:zero_idx], 'o')
+    # plt.plot(zeros[:upto], lfp_band[zeros][:upto], 'go')
+    # plt.axhline(0)
+    # plt.plot(peaks[:int(upto/2)], lfp_pre[peaks][:int(upto/2)], 'ro')
+    # plt.plot(troughs[:int(upto/2)], lfp_pre[troughs][:int(upto/2)], 'bo')
+    # plt.show()
+
     return esr, rdsr
 
 
@@ -703,10 +716,11 @@ def exclude_outliers(x, y, n=2):
     mask_y = y > (y.mean() + n * y.std())  # extreme y values
 
     mask = np.logical_not(np.logical_or(mask_x, mask_y))  # NOT outliers
+    # get the outliers as well
     x_out = x[np.logical_not(mask)]
     y_out = y[np.logical_not(mask)]
 
-    return x[mask], y[mask], x_out, y_out
+    return x[mask], y[mask], x_out, y_out, mask
 
 
 def smooth_with_mean_window(x, window_size=5):

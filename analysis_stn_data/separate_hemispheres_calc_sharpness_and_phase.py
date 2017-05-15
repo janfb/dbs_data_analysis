@@ -77,12 +77,14 @@ for file_idx, file in enumerate(subject_file_list):
 
                 # for every epoch
                 for epoch_idx, epoch in enumerate(channel_lfp.T):
+
                     # do preprocessing a la Cole et al
                     # low pass filter
                     lfp_pre = ut.low_pass_filter(y=epoch, fs=fs, cutoff=200)
 
                     # band pass filter
                     lfp_band = ut.band_pass_filter(y=lfp_pre, fs=fs, band=band, plot_response=False)
+
                     # remove potential ringing artifacts
                     idx_167ms = int((fs / 1000) * 167)
                     lfp_band = lfp_band[idx_167ms:-idx_167ms]
@@ -90,6 +92,11 @@ for file_idx, file in enumerate(subject_file_list):
 
                     lfp_pre = lfp_pre[idx_167ms: -idx_167ms]
                     lfp_pre -= lfp_pre.mean()
+
+                    # debug plot, check artifacts
+                    # if subject_id == 'DP':
+                    #     plt.plot(lfp_pre)
+                    #     plt.show()
 
                     # calculate the sharpness and steepness ratios
                     esr[epoch_idx], rdsr[epoch_idx] = ut.calculate_cole_ratios(lfp_pre, lfp_band, fs)
@@ -139,7 +146,7 @@ for file_idx, file in enumerate(subject_file_list):
     data_dict[key_right] = dict(esr_mat=esr_mat[right_channel_idx,],
                                 rdsr_mat=rdsr_mat[right_channel_idx,],
                                 pac_matrix=pac_matrix[right_channel_idx, ],
-                                meanPhaseVec_mat=meanPhaseVec_mat[left_channel_idx,],
+                                meanPhaseVec_mat=meanPhaseVec_mat[right_channel_idx,],
                                 f_amp=pac_dict['on']['F_amp'],
                                 f_phase=pac_dict['on']['F_phase'],
                                 id=key_right,

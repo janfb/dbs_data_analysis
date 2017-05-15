@@ -41,18 +41,19 @@ mpv_results = dict(per_cond_channel=np.zeros((n_bands, n_subject_hemis, n_channe
                    per_hemi = np.zeros((n_bands, n_subject_hemis)),
                    max_channel_per_condition=np.zeros((n_bands, n_subject_hemis, n_conditions)))
 
+subject_ids = []
+
 # for every subject-hemisphere, extract the values into the matrices defined above
 for hemi_idx, hemi_dict in enumerate(data_dict.values()):
 
-    id = hemi_dict['id']
+    subject_ids.append(hemi_dict['id'][:4])
 
     # prepare ratio matrices
     # shape = (n_channels, n_bands, n_conditions, (mean, std))
     esr_mat = hemi_dict['esr_mat'][:, :, :, 0]  # extract only the mean
     rdsr_mat = hemi_dict['rdsr_mat'][:, :, :, 0]  # extract only the mean
-    mpv_mat = hemi_dict['rdsr_mat'][:, :, :, 0]  # extract only the mean phase vector length
+    mpv_mat = hemi_dict['meanPhaseVec_mat'][:, :, :, 0]  # extract only the mean phase vector length
     # now shape = (n_channels, n_bands, n_conditions)
-
 
     # for PAC analysis
     # average across low beta and high and across all HFO amplitude frequencies
@@ -140,220 +141,245 @@ Make a figure for correlations in every channel across subjects and conditions
 subplot bands x channels 
 """
 
-outlier_std_factor = 6
+outlier_std_factor = 4
 
-# plot_idx = 0
-# plt.figure(figsize=(12, 8))
-#
-# # CHOOSE BETWEEN ESR OR RDSR DATA HERE
-# ratio_matrix = esr_results
-# ratio_str = 'esr'
-#
-# for band_idx, band in enumerate(bands):
-#     for channel_idx in range(n_channels):
-#         # take mean over channels and treat hemispheres as samples, combine conditions
-#         x_all = ratio_matrix['per_cond_channel'][band_idx, :, channel_idx, :].flatten()
-#         y_all = pac_results['per_cond_channel'][band_idx, :, channel_idx, :].flatten()
-#         slope, bias, r, p, stderr = scipy.stats.linregress(x_all, y_all)
-#         r = round(r, 2)
-#         p = round(p, 3)
-#
-#         plot_idx += 1
-#         plt.subplot(n_bands, n_channels, plot_idx)
-#         plt.plot(ratio_matrix['per_cond_channel'][band_idx, :, channel_idx, 0].flatten(),
-#                  pac_results['per_cond_channel'][band_idx, :, channel_idx, 0].flatten(), '*', markersize=5, label='off')
-#         plt.plot(ratio_matrix['per_cond_channel'][band_idx, :, channel_idx, 1].flatten(),
-#                  pac_results['per_cond_channel'][band_idx, :, channel_idx, 1].flatten(), '*', markersize=5, label='on')
-#         if plot_idx > 3:
-#             plt.xlabel(ratio_str)
-#         # else:
-#         #     plt.xticks([], [])
-#
-#         if plot_idx == 1 or plot_idx == 4:
-#             plt.ylabel('mean pac')
-#         else:
-#             plt.yticks([], [])
-#
-#         # fit a line
-#         xvals = np.linspace(x_all.min(), x_all.max(), x_all.size)
-#         plt.plot(xvals, bias + slope * xvals, label='r={}, p={}'.format(r, p))
-#
-#         # plot the regression line with outliers removed
-#         x_all, y_all, x_out, y_out = ut.exclude_outliers(x_all, y_all, n=outlier_std_factor)  # use n times std away from mean as criterion
-#         # plot the outliers
-#         plt.plot(x_out, y_out, '+', color='C3', markersize=7)
-#
-#         slope, bias, r, p, stderr = scipy.stats.linregress(x_all, y_all)
-#         xvals = np.linspace(x_all.min(), x_all.max(), x_all.size)
-#         plt.plot(xvals, bias + slope * xvals, label='r={}, p={}, cleaned'.format(round(r, 2), round(p, 3)))
-#
-#         plt.legend(loc=1, prop={'size': 7})
-#         plt.ylim([0.005, 0.035])
-#         plt.title('{}, channel {}'.format(band_str[band_idx], channel_idx + 1))
-#         # plt.xlim([1.05, 1.25])
-#         print('across subject and conditions, {}, channel {}'.format(band, channel_idx + 1), r)
-#
-# plt.suptitle('Correlations between PAC and {} for every channel'.format(ratio_str.upper()))
-#
-#
-# figure_filename = 'pac_{}_corr_all_channels.pdf'.format(ratio_str)
-# plt.savefig(os.path.join(save_folder, figure_filename))
-# plt.show()
-# plt.close()
-#
-# """
-# Make a similar figure with correlations of selected channels with maximum PAC
-# """
-#
-# plot_idx = 0
-# plt.figure(figsize=(10, 5))
-#
-# for band_idx, band in enumerate(bands):
-#     x_all = ratio_matrix['max_channel_per_condition'][band_idx,].flatten()
-#     y_all = pac_results['max_channel_per_condition'][band_idx,].flatten()
-#     slope, bias, r, p, stderr = scipy.stats.linregress(x_all, y_all)
-#     r = round(r, 2)
-#     p = round(p, 3)
-#
-#     plot_idx += 1
-#     plt.subplot(1, n_bands, plot_idx)
-#     plt.plot(ratio_matrix['max_channel_per_condition'][band_idx, :, 0].flatten(),
-#              pac_results['max_channel_per_condition'][band_idx, :, 0].flatten(), '*', markersize=5, label='off')
-#     plt.plot(ratio_matrix['max_channel_per_condition'][band_idx, :, 1].flatten(),
-#              pac_results['max_channel_per_condition'][band_idx, :, 1].flatten(), '*', markersize=5, label='on')
-#     plt.xlabel(ratio_str)
-#
-#     if plot_idx == 1:
-#         plt.ylabel('mean pac')
-#
-#     # fit a line
-#     xvals = np.linspace(x_all.min(), x_all.max(), x_all.size)
-#     plt.plot(xvals, bias + slope * xvals, label='r={}, p={}'.format(r, p))
-#
-#     # plot the regression line with outliers removed
-#     x_all, y_all, x_out, y_out = ut.exclude_outliers(x_all, y_all, n=outlier_std_factor)  # use n times std away from mean as criterion
-#     # plot the outliers
-#     plt.plot(x_out, y_out, '+', color='C3', markersize=7)
-#
-#     # plot the new regression line
-#     slope, bias, r, p, stderr = scipy.stats.linregress(x_all, y_all)
-#     xvals = np.linspace(x_all.min(), x_all.max(), x_all.size)
-#     plt.plot(xvals, bias + slope * xvals, label='r={}, p={}, cleaned'.format(round(r, 2), round(p, 3)))
-#
-#     plt.legend(loc=1, prop={'size': 7})
-#     plt.ylim([0.006, 0.036])
-#     plt.title('{}'.format(band_str[band_idx]))
-#
-#     print('across subject and conditions, {}, selected channels'.format(band), r)
-#
-# plt.suptitle('Correlations between PAC and {} for maximum PAC channels'.format(ratio_str.upper()))
-# figure_filename = 'pac_{}_corr_max_channels.pdf'.format(ratio_str)
-# plt.savefig(os.path.join(save_folder, figure_filename))
-# plt.show()
-# plt.close()
-#
-# """
-# Pool data across subjects, channels and conditions
-# """
-#
-# plot_idx = 0
-# plt.figure(figsize=(10, 5))
-#
-# for band_idx, band in enumerate(bands):
-#     x_all = ratio_matrix['per_cond_channel'][band_idx,].flatten()
-#     y_all = pac_results['per_cond_channel'][band_idx,].flatten()
-#     slope, bias, r, p, stderr = scipy.stats.linregress(x_all, y_all)
-#     r = round(r, 2)
-#     p = round(p, 3)
-#
-#     plot_idx += 1
-#     plt.subplot(1, n_bands, plot_idx)
-#     plt.plot(ratio_matrix['per_cond_channel'][band_idx, :, :, 0].flatten(),
-#              pac_results['per_cond_channel'][band_idx, :, :, 0].flatten(), '*', markersize=5, label='off')
-#     plt.plot(ratio_matrix['per_cond_channel'][band_idx, :, :, 1].flatten(),
-#              pac_results['per_cond_channel'][band_idx, :, :, 1].flatten(), '*', markersize=5, label='on')
-#     plt.xlabel(ratio_str)
-#
-#     if plot_idx == 1:
-#         plt.ylabel('mean pac')
-#
-#     # fit a line
-#     xvals = np.linspace(x_all.min(), x_all.max(), x_all.size)
-#     plt.plot(xvals, bias + slope * xvals, label='r={}, p={}'.format(r, p))
-#
-#     # plot the regression line with outliers removed
-#     x_all, y_all, x_out, y_out = ut.exclude_outliers(x_all, y_all, n=outlier_std_factor)  # use n times std away from mean as criterion
-#     # plot the outliers
-#     plt.plot(x_out, y_out, '+', color='C3', markersize=7)
-#
-#     # plot the new regression line
-#     slope, bias, r, p, stderr = scipy.stats.linregress(x_all, y_all)
-#     xvals = np.linspace(x_all.min(), x_all.max(), x_all.size)
-#     plt.plot(xvals, bias + slope * xvals, label='r={}, p={}, cleaned'.format(round(r, 2), round(p, 3)))
-#
-#     plt.legend(loc=1, prop={'size': 7})
-#     plt.ylim([0.006, 0.036])
-#     plt.title('{}'.format(band_str[band_idx]))
-#
-#     print('across subject, channels and conditions, {}'.format(band), r)
-#
-# plt.suptitle('Correlations between PAC and {} pooled across channels and conditions'.format(ratio_str.upper()))
-# figure_filename = 'pac_{}_corr_pooled.pdf'.format(ratio_str)
-# plt.savefig(os.path.join(save_folder, figure_filename))
-# plt.show()
-# plt.close()
-#
-# """
-# Make a figure for correlations pooled over subjects and conditions, averaged over channels.
-# """
-#
-# plt.figure(figsize=(10, 5))
-# plot_idx = 0
-# for band_idx, band in enumerate(bands):
-#     x_all = ratio_matrix['per_condition'][band_idx,].flatten()
-#     y_all = pac_results['per_condition'][band_idx,].flatten()
-#     slope, bias, r, p, stderr = scipy.stats.linregress(x_all, y_all)
-#     r = round(r, 2)
-#     p = round(p, 3)
-#
-#     plot_idx += 1
-#     plt.subplot(1, n_bands, plot_idx)
-#     # extract data for every condition separately for scatter plot
-#     plt.plot(ratio_matrix['per_condition'][band_idx, :, 0].flatten(),
-#              pac_results['per_condition'][band_idx, :, 0].flatten(), '*', markersize=5, label='off')
-#     plt.plot(ratio_matrix['per_condition'][band_idx, :, 1].flatten(),
-#              pac_results['per_condition'][band_idx, :, 1].flatten(), '*', markersize=5, label='on')
-#     plt.xlabel(ratio_str)
-#
-#     if plot_idx == 1:
-#         plt.ylabel('mean pac')
-#
-#     # fit a line
-#     xvals = np.linspace(x_all.min(), x_all.max(), x_all.size)
-#     plt.plot(xvals, bias + slope * xvals, label='r={}, p={}'.format(r, p))
-#
-#     # plot the regression line with outliers removed
-#     x_all, y_all, x_out, y_out = ut.exclude_outliers(x_all, y_all, n=outlier_std_factor)  # use n times std away from mean as criterion
-#     # plot the outliers
-#     plt.plot(x_out, y_out, '+', color='C3', markersize=7)
-#
-#     # plot the new regression line
-#     slope, bias, r, p, stderr = scipy.stats.linregress(x_all, y_all)
-#     xvals = np.linspace(x_all.min(), x_all.max(), x_all.size)
-#     plt.plot(xvals, bias + slope * xvals, label='r={}, p={}, cleaned'.format(round(r, 2), round(p, 3)))
-#
-#     plt.legend(loc=1, prop={'size': 7})
-#     plt.ylim([0.007, 0.026])
-#     plt.xlim([1.04, 1.15])
-#     plt.title('{}'.format(band_str[band_idx]))
-#
-#     print('across subject and conditions, averaged channels, {}'.format(band), r)
-#
-# plt.suptitle('Correlations between PAC and {} pooled across conditions, averaged over channels'.format(ratio_str.upper()))
-# figure_filename = 'pac_{}_corr_channel_average.pdf'.format(ratio_str)
-# plt.savefig(os.path.join(save_folder, figure_filename))
-# plt.show()
-# plt.close()
+plot_idx = 0
+plt.figure(figsize=(12, 8))
+
+# CHOOSE BETWEEN ESR OR RDSR DATA HERE
+ratio_matrix = rdsr_results
+ratio_str = 'rdsr'
+
+# when pooled over conditions pairs of neighboring data points belong to one hemisphere
+pooled_subject_ids_conditions = np.repeat(subject_ids, n_conditions)
+# when pooled over conditions and channels, it is conditions * channels data points belonging to a subject hemisphere
+pooled_subject_ids_conditions_channels = np.repeat(subject_ids, n_conditions * n_channels)
+
+for band_idx, band in enumerate(bands):
+    for channel_idx in range(n_channels):
+        # take mean over channels and treat hemispheres as samples, combine conditions
+        x_all = ratio_matrix['per_cond_channel'][band_idx, :, channel_idx, :].flatten()
+        y_all = pac_results['per_cond_channel'][band_idx, :, channel_idx, :].flatten()
+        slope, bias, r, p, stderr = scipy.stats.linregress(x_all, y_all)
+        r = round(r, 2)
+        p = round(p, 3)
+
+        plot_idx += 1
+        plt.subplot(n_bands, n_channels, plot_idx)
+        plt.plot(ratio_matrix['per_cond_channel'][band_idx, :, channel_idx, 0].flatten(),
+                 pac_results['per_cond_channel'][band_idx, :, channel_idx, 0].flatten(), '*', markersize=5, label='off')
+        plt.plot(ratio_matrix['per_cond_channel'][band_idx, :, channel_idx, 1].flatten(),
+                 pac_results['per_cond_channel'][band_idx, :, channel_idx, 1].flatten(), '*', markersize=5, label='on')
+        if plot_idx > 3:
+            plt.xlabel(ratio_str)
+        # else:
+        #     plt.xticks([], [])
+
+        if plot_idx == 1 or plot_idx == 4:
+            plt.ylabel('mean pac')
+        else:
+            plt.yticks([], [])
+
+        # fit a line
+        xvals = np.linspace(x_all.min(), x_all.max(), x_all.size)
+        plt.plot(xvals, bias + slope * xvals, label='r={}, p={}'.format(r, p))
+
+        # plot the regression line with outliers removed
+        x_clean, y_clean, x_out, y_out, mask = ut.exclude_outliers(x_all, y_all, n=outlier_std_factor)  # use n times std away from mean as criterion
+        # plot the outliers
+        outlier_indices = np.where(np.logical_not(mask))[0]
+        outlier_labels = np.repeat(subject_ids, int(x_all.size / len(subject_ids)))
+        for outlier_idx in range(outlier_indices.shape[0]):
+            plt.plot(x_out[outlier_idx], y_out[outlier_idx], '+', markersize=7,
+                     label=outlier_labels[outlier_indices[outlier_idx]])
+
+        slope, bias, r, p, stderr = scipy.stats.linregress(x_clean, y_clean)
+        xvals = np.linspace(x_clean.min(), x_clean.max(), x_clean.size)
+        plt.plot(xvals, bias + slope * xvals, label='r={}, p={}, cleaned'.format(round(r, 2), round(p, 3)))
+
+        plt.legend(loc=1, prop={'size': 7})
+        plt.ylim([0.005, 0.035])
+        plt.title('{}, channel {}'.format(band_str[band_idx], channel_idx + 1))
+        # plt.xlim([1.05, 1.25])
+        print('across subject and conditions, {}, channel {}'.format(band, channel_idx + 1), r)
+
+plt.suptitle('Correlations between PAC and {} for every channel'.format(ratio_str.upper()))
+
+
+figure_filename = 'pac_{}_corr_all_channels.pdf'.format(ratio_str)
+plt.savefig(os.path.join(save_folder, figure_filename))
+plt.show()
+plt.close()
+
+"""
+Make a similar figure with correlations of selected channels with maximum PAC
+"""
+
+plot_idx = 0
+plt.figure(figsize=(10, 5))
+
+for band_idx, band in enumerate(bands):
+    x_all = ratio_matrix['max_channel_per_condition'][band_idx,].flatten()
+    y_all = pac_results['max_channel_per_condition'][band_idx,].flatten()
+    slope, bias, r, p, stderr = scipy.stats.linregress(x_all, y_all)
+    r = round(r, 2)
+    p = round(p, 3)
+
+    plot_idx += 1
+    plt.subplot(1, n_bands, plot_idx)
+    plt.plot(ratio_matrix['max_channel_per_condition'][band_idx, :, 0].flatten(),
+             pac_results['max_channel_per_condition'][band_idx, :, 0].flatten(), '*', markersize=5, label='off')
+    plt.plot(ratio_matrix['max_channel_per_condition'][band_idx, :, 1].flatten(),
+             pac_results['max_channel_per_condition'][band_idx, :, 1].flatten(), '*', markersize=5, label='on')
+    plt.xlabel(ratio_str)
+
+    if plot_idx == 1:
+        plt.ylabel('mean pac')
+
+    # fit a line
+    xvals = np.linspace(x_all.min(), x_all.max(), x_all.size)
+    plt.plot(xvals, bias + slope * xvals, label='r={}, p={}'.format(r, p))
+
+    # plot the regression line with outliers removed
+    x_clean, y_clean, x_out, y_out, mask = ut.exclude_outliers(x_all, y_all,
+                                                           n=outlier_std_factor)  # use n times std away from mean as criterion
+    # plot the outliers
+    outlier_indices = np.where(np.logical_not(mask))[0]
+    outlier_labels = np.repeat(subject_ids, int(x_all.size / len(subject_ids)))
+    for outlier_idx in range(outlier_indices.shape[0]):
+        plt.plot(x_out[outlier_idx], y_out[outlier_idx], '+', markersize=7,
+                 label=outlier_labels[outlier_indices[outlier_idx]])
+
+    # plot the new regression line
+    slope, bias, r, p, stderr = scipy.stats.linregress(x_clean, y_clean)
+    xvals = np.linspace(x_clean.min(), x_clean.max(), x_clean.size)
+    plt.plot(xvals, bias + slope * xvals, label='r={}, p={}, cleaned'.format(round(r, 2), round(p, 3)))
+
+    plt.legend(loc=1, prop={'size': 7})
+    plt.ylim([0.006, 0.036])
+    plt.title('{}'.format(band_str[band_idx]))
+
+    print('across subject and conditions, {}, selected channels'.format(band), r)
+
+plt.suptitle('Correlations between PAC and {} for maximum PAC channels'.format(ratio_str.upper()))
+figure_filename = 'pac_{}_corr_max_channels.pdf'.format(ratio_str)
+plt.savefig(os.path.join(save_folder, figure_filename))
+plt.show()
+plt.close()
+
+"""
+Pool data across subjects, channels and conditions
+"""
+
+plot_idx = 0
+plt.figure(figsize=(10, 5))
+
+for band_idx, band in enumerate(bands):
+    ll = ratio_matrix['per_cond_channel'][band_idx,]
+    x_all = ratio_matrix['per_cond_channel'][band_idx,].flatten()
+    y_all = pac_results['per_cond_channel'][band_idx,].flatten()
+    slope, bias, r, p, stderr = scipy.stats.linregress(x_all, y_all)
+    r = round(r, 2)
+    p = round(p, 3)
+
+    plot_idx += 1
+    plt.subplot(1, n_bands, plot_idx)
+    plt.plot(ratio_matrix['per_cond_channel'][band_idx, :, :, 0].flatten(),
+             pac_results['per_cond_channel'][band_idx, :, :, 0].flatten(), '*', markersize=5, label='off')
+    plt.plot(ratio_matrix['per_cond_channel'][band_idx, :, :, 1].flatten(),
+             pac_results['per_cond_channel'][band_idx, :, :, 1].flatten(), '*', markersize=5, label='on')
+    plt.xlabel(ratio_str)
+
+    if plot_idx == 1:
+        plt.ylabel('mean pac')
+
+    # fit a line
+    xvals = np.linspace(x_all.min(), x_all.max(), x_all.size)
+    plt.plot(xvals, bias + slope * xvals, label='r={}, p={}'.format(r, p))
+
+    # plot the regression line with outliers removed
+    x_clean, y_clean, x_out, y_out, mask = ut.exclude_outliers(x_all, y_all,
+                                                           n=outlier_std_factor)  # use n times std away from mean as criterion
+    # plot the outliers
+    outlier_indices = np.where(np.logical_not(mask))[0]
+    outlier_labels = np.repeat(subject_ids, int(x_all.size / len(subject_ids)))
+    for outlier_idx in range(outlier_indices.shape[0]):
+        plt.plot(x_out[outlier_idx], y_out[outlier_idx], '+', markersize=7,
+                 label=outlier_labels[outlier_indices[outlier_idx]])
+
+    # plot the new regression line
+    slope, bias, r, p, stderr = scipy.stats.linregress(x_clean, y_clean)
+    xvals = np.linspace(x_clean.min(), x_clean.max(), x_clean.size)
+    plt.plot(xvals, bias + slope * xvals, label='r={}, p={}, cleaned'.format(round(r, 2), round(p, 3)))
+
+    plt.legend(loc=1, prop={'size': 7})
+    plt.ylim([0.006, 0.036])
+    plt.title('{}'.format(band_str[band_idx]))
+
+    print('across subject, channels and conditions, {}'.format(band), r)
+
+plt.suptitle('Correlations between PAC and {} pooled across channels and conditions'.format(ratio_str.upper()))
+figure_filename = 'pac_{}_corr_pooled.pdf'.format(ratio_str)
+plt.savefig(os.path.join(save_folder, figure_filename))
+plt.show()
+plt.close()
+
+"""
+Make a figure for correlations pooled over subjects and conditions, averaged over channels.
+"""
+
+plt.figure(figsize=(10, 5))
+plot_idx = 0
+for band_idx, band in enumerate(bands):
+    x_all = ratio_matrix['per_condition'][band_idx,].flatten()
+    y_all = pac_results['per_condition'][band_idx,].flatten()
+    slope, bias, r, p, stderr = scipy.stats.linregress(x_all, y_all)
+    r = round(r, 2)
+    p = round(p, 3)
+
+    plot_idx += 1
+    plt.subplot(1, n_bands, plot_idx)
+    # extract data for every condition separately for scatter plot
+    plt.plot(ratio_matrix['per_condition'][band_idx, :, 0].flatten(),
+             pac_results['per_condition'][band_idx, :, 0].flatten(), '*', markersize=5, label='off')
+    plt.plot(ratio_matrix['per_condition'][band_idx, :, 1].flatten(),
+             pac_results['per_condition'][band_idx, :, 1].flatten(), '*', markersize=5, label='on')
+    plt.xlabel(ratio_str)
+
+    if plot_idx == 1:
+        plt.ylabel('mean pac')
+
+    # fit a line
+    xvals = np.linspace(x_all.min(), x_all.max(), x_all.size)
+    plt.plot(xvals, bias + slope * xvals, label='r={}, p={}'.format(r, p))
+
+    # plot the regression line with outliers removed
+    x_clean, y_clean, x_out, y_out, mask = ut.exclude_outliers(x_all, y_all,
+                                                           n=outlier_std_factor)  # use n times std away from mean as criterion
+    # plot the outliers
+    outlier_indices = np.where(np.logical_not(mask))[0]
+    outlier_labels = np.repeat(subject_ids, int(x_all.size / len(subject_ids)))
+    for outlier_idx in range(outlier_indices.shape[0]):
+        plt.plot(x_out[outlier_idx], y_out[outlier_idx], '+', markersize=7,
+                 label=outlier_labels[outlier_indices[outlier_idx]])
+
+    # plot the new regression line
+    slope, bias, r, p, stderr = scipy.stats.linregress(x_clean, y_clean)
+    xvals = np.linspace(x_clean.min(), x_clean.max(), x_clean.size)
+    plt.plot(xvals, bias + slope * xvals, label='r={}, p={}, cleaned'.format(round(r, 2), round(p, 3)))
+
+    plt.legend(loc=1, prop={'size': 7})
+    # plt.ylim([0.007, 0.026])
+    # plt.xlim([1.04, 1.15])
+    plt.title('{}'.format(band_str[band_idx]))
+
+    print('across subject and conditions, averaged channels, {}'.format(band), r)
+
+plt.suptitle('Correlations between PAC and {} pooled across conditions, averaged over channels'.format(ratio_str.upper()))
+figure_filename = 'pac_{}_corr_channel_average.pdf'.format(ratio_str)
+plt.savefig(os.path.join(save_folder, figure_filename))
+plt.show()
+plt.close()
 
 """
 Produce plots of the correlations between PAC and mean phase vector amplitude and ESR vs. MPV 
@@ -366,31 +392,31 @@ Produce plots of the correlations between PAC and mean phase vector amplitude an
 
 
 # make a list of data series pairs to have only a single for loop for the figure
-# data_pairs_list = [[mpv_results['max_channel_per_condition'], pac_results['max_channel_per_condition']],  # A over max channels
-#                    [mpv_results['per_cond_channel'], pac_results['per_cond_channel']],  # all pooled
-#                    [mpv_results['per_condition'], pac_results['per_condition']]]  # average channels
+data_pairs_list = [[mpv_results['max_channel_per_condition'], pac_results['max_channel_per_condition']],  # A over max channels
+                   [mpv_results['per_cond_channel'], pac_results['per_cond_channel']],  # all pooled
+                   [mpv_results['per_condition'], pac_results['per_condition']]]  # average channels
+
+title_list = ['Correlations between PAC and MPV length, pooled across conditions, max PAC channels',
+              'Correlations between PAC and MPV length, pooled across conditions and channels',
+              'Correlations between PAC and MPV length, pooled across conditions, averaged over channels']
+
+figure_filename_list = ['pac_mpv_corr_max_channels.pdf',
+                        'pac_mpv_corr_pooled.pdf',
+                        'pac_mpv_corr_average_channels.pdf']
+y_label = 'mean pac'
+
+
+# same between mpv and ratio
+# data_pairs_list = [[mpv_results['per_cond_channel'], ratio_matrix['per_cond_channel']],  # all pooled
+#                    [mpv_results['per_condition'], ratio_matrix['per_condition']]]  # average channels
 #
-# title_list = ['Correlations between PAC and mean phase vector amplitude, pooled across conditions, max PAC channels',
-#               'Correlations between PAC and mean phase vector amplitude, pooled across conditions and channels',
-#               'Correlations between PAC and mean phase vector amplitude, pooled across conditions, averaged over channels']
+# title_list = ['Correlations between {} and MPV length, pooled across conditions and channels'.format(ratio_str.upper()),
+#               'Correlations between {} and MPV length, pooled across conditions, averaged over channels'.format(ratio_str.upper())]
 #
-# figure_filename_list = ['pac_mpv_corr_max_channels.pdf',
-#                         'pac_mpv_corr_pooled.pdf',
-#                         'pac_mpv_corr_average_channels.pdf']
-# y_label = 'mean pac'
-
-
-# same between mpv and esr
-data_pairs_list = [[mpv_results['per_cond_channel'], esr_results['per_cond_channel']],  # all pooled
-                   [mpv_results['per_condition'], esr_results['per_condition']]]  # average channels
-
-title_list = ['Correlations between ESR and MPV length, pooled across conditions and channels',
-              'Correlations between ESR and MPV length, pooled across conditions, averaged over channels']
-
-figure_filename_list = ['esr_mpv_corr_pooled.pdf',
-                        'esr_mpv_corr_average_channels.pdf']
-
-y_label = 'esr'
+# figure_filename_list = ['{}_mpv_corr_pooled.pdf'.format(ratio_str),
+#                         '{}_mpv_corr_average_channels.pdf'.format(ratio_str)]
+#
+# y_label = ratio_str
 
 # plot figures A, B, C
 for data_pair_idx, data_pair in enumerate(data_pairs_list):
@@ -424,20 +450,23 @@ for data_pair_idx, data_pair in enumerate(data_pairs_list):
         plt.plot(xvals, bias + slope * xvals, label='r={}, p={}'.format(r, p))
 
         # plot the regression line with outliers removed
-        x_all, y_all, x_out, y_out = ut.exclude_outliers(x_all, y_all,
-                                                         n=outlier_std_factor)  # use n times std away from mean as criterion
+        x_clean, y_clean, x_out, y_out, mask = ut.exclude_outliers(x_all, y_all,
+                                                               n=outlier_std_factor)  # use n times std away from mean as criterion
         # plot the outliers
-        plt.plot(x_out, y_out, '+', color='C3', markersize=7)
+        outlier_indices = np.where(np.logical_not(mask))[0]
+        outlier_labels = np.repeat(subject_ids, int(x_all.size / len(subject_ids)))
+        for outlier_idx in range(outlier_indices.shape[0]):
+            plt.plot(x_out[outlier_idx], y_out[outlier_idx], '+', markersize=7,
+                     label=outlier_labels[outlier_indices[outlier_idx]])
 
         # plot the new regression line
-        slope, bias, r, p, stderr = scipy.stats.linregress(x_all, y_all)
-        xvals = np.linspace(x_all.min(), x_all.max(), x_all.size)
+        slope, bias, r, p, stderr = scipy.stats.linregress(x_clean, y_clean)
+        xvals = np.linspace(x_clean.min(), x_clean.max(), x_clean.size)
         plt.plot(xvals, bias + slope * xvals, label='r={}, p={}, cleaned'.format(round(r, 2), round(p, 4)))
 
         plt.legend(loc=1, prop={'size': 7})
         # plt.ylim([0.006, 0.036])
         plt.title('{}'.format(band_str[band_idx]))
-
 
     plt.suptitle(title_list[data_pair_idx])
     figure_filename = figure_filename_list[data_pair_idx]
