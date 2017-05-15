@@ -65,12 +65,13 @@ for file_idx, file in enumerate(subject_file_list):
 
         for channel_idx, channel_label in enumerate(channel_labels):
 
+            channel_label = channel_label[0]
             channel_lfp = condition_dict['data'][channel_idx]
 
             # the customized freqeuncy bands are saved per hemisphere, therefore we have to find out the current hemi
             current_hemi = 'left' if channel_label in left_channels else 'right'
-            # the frequency bands are also different for conditions, pick the current one.
-            current_band = super_dict['bands'][current_hemi][condition_idx]
+            # the frequency bands are also different for channels and conditions, pick the current one.
+            current_band = super_dict['bands'][current_hemi][channel_label][condition_idx]
 
             # filter in low and high beta band
             for band_idx, band in enumerate(bands):
@@ -144,7 +145,10 @@ for file_idx, file in enumerate(subject_file_list):
                                f_amp=pac_dict['on']['F_amp'],
                                f_phase=pac_dict['on']['F_phase'],
                                id=key_left,
-                               condition_bands=super_dict['bands']['left'])
+                               conditions=conditions,
+                               channel_labels=channel_labels[left_channel_idx],
+                               condition_bands=super_dict['bands']['left'],
+                               significance_flag=super_dict['sig_flag_matrix'][left_channel_idx, ])
 
     # select only right channels
     data_dict[key_right] = dict(esr_mat=esr_mat[right_channel_idx,],
@@ -154,7 +158,10 @@ for file_idx, file in enumerate(subject_file_list):
                                 f_amp=pac_dict['on']['F_amp'],
                                 f_phase=pac_dict['on']['F_phase'],
                                 id=key_right,
-                                condition_bands=super_dict['bands']['right'])
+                                conditions=conditions,
+                                channel_labels=channel_labels[right_channel_idx],
+                                condition_bands=super_dict['bands']['right'],
+                                significance_flag=super_dict['sig_flag_matrix'][right_channel_idx, ])
 
 # finally we save the big data file that contains the data for all hemispheres separately
 save_filename = 'sharpness_pac_separated_in_hemisphere_n{}_optimized_bands.p'.format(file_idx + 1)
