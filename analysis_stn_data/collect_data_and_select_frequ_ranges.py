@@ -5,6 +5,7 @@ import utils as ut
 from definitions import SAVE_PATH_FIGURES, SAVE_PATH_DATA, DATA_PATH
 import scipy.io
 import scipy.signal
+from scipy.ndimage import measurements
 
 """
 The matlab data is saved in files for every subject condition. one subject condition file contains channels from both 
@@ -18,6 +19,8 @@ save_folder = os.path.join(DATA_PATH, 'STN_data_PAC', 'collected')
 file_list = os.listdir(data_folder)
 
 subject_list = ['DF', 'DP', 'JA', 'JB', 'DS', 'JN', 'JP', 'LM', 'MC', 'MW', 'SW', 'WB']
+
+max_cluster_list = []
 
 for subject_id in subject_list:
 
@@ -110,16 +113,35 @@ for subject_id in subject_list:
             smoother_pac = ut.smooth_with_mean_window(data, window_size=5)
             max_idx = np.argmax(smoother_pac)
             # sum logical significance values across the amplitude frequency dimension
-            current_sig = sig_matrix[channel_idx, condition_idx, :, mask].mean(axis=1)  # should be shape (61,)
-            if np.max(current_sig) > sig_threshold:
+            # calculate the binary groups in the significance map
+            lw, num = measurements.label(sig_matrix[channel_idx, condition_idx, : , :])
+            # calculate the area of the clusters:
+            # from http://stackoverflow.com/questions/25664682/how-to-find-cluster-sizes-in-2d-numpy-array
+            area = measurements.sum(sig_matrix[channel_idx, condition_idx,], lw, index=np.arange(lw.max() + 1))
+            # get the size of the largest group
+            max_cluster_size = np.max(area)
+            max_cluster_list.append(max_cluster_size)
+            # calculate mean
+            current_sig_phase = sig_matrix[channel_idx, condition_idx, :, mask].mean(axis=1)  # should be shape (61,)
+            current_sig_amp = sig_matrix[channel_idx, condition_idx, :, mask].mean(axis=0)  # should be shape (61,)
+            # if (np.max(current_sig_phase) > sig_threshold or np.max(current_sig_amp) > sig_threshold) \
+            if max_cluster_size > 200:
                 significant_pac[channel_idx, condition_idx] = 1
+                # plt.subplot(121)
+                # plt.imshow(sig_matrix[channel_idx, condition_idx,], origin='lower')
+                # plt.title('{}'.format(max_cluster_size))
+                # plt.subplot(122)
+                # plt.imshow(pac_matrix[channel_idx, condition_idx,], origin='lower')
+                # plt.show()
 
-            # # plot both, the sig and the smoothed pac mean
-            # plt.subplot(311)
-            # plt.plot(current_sig)
-            # plt.subplot(312)
+            # plot both, the sig and the smoothed pac mean
+            # plt.subplot(411)
+            # plt.plot(current_sig_phase)
+            # plt.subplot(412)
+            # plt.plot(current_sig_amp)
+            # plt.subplot(413)
             # plt.plot(smoother_pac)
-            # plt.subplot(313)
+            # plt.subplot(414)
             # plt.imshow(pac_matrix[channel_idx, condition_idx,], origin='lower')
             # plt.show()
 
@@ -140,3 +162,6 @@ for subject_id in subject_list:
     print(bands)
     file_name = 'subject_{}_lfp_and_pac.p'.format(subject_id)
     ut.save_data(subject_dict, file_name, save_folder)
+
+# plt.hist(np.array(max_cluster_list), bins='auto')
+# plt.show()

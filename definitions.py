@@ -1,7 +1,7 @@
 import os
 
-# ROOT_DIR = '/Users/Jan/Dropbox/Master/LR_Kuehn/'
-ROOT_DIR = '/home/boelts/Dropbox/Master/LR_Kuehn/'
+ROOT_DIR = '/Users/Jan/Dropbox/Master/LR_Kuehn/'
+# ROOT_DIR = '/home/boelts/Dropbox/Master/LR_Kuehn/'
 
 DATA_PATH = os.path.join(ROOT_DIR, 'data')
 

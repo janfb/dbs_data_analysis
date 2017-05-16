@@ -395,7 +395,7 @@ title_list = ['Correlations between PAC and {}, pooled across conditions, max si
 figure_filename_list = ['pac_{}_corr_max_sig_channels.pdf'.format(dings) for dings in ['esr', 'rdsr', 'mpv']]
 
 y_label = 'mean pac'
-x_labels = np.array(['esr', 'rdsr', 'mpv length']).repeat(3)
+x_labels = np.array(['esr', 'rdsr', 'mpv length'])
 
 for data_pair_idx, data_pair in enumerate(data_pairs_list):
     plot_idx = 0
