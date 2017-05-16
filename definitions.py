@@ -1,6 +1,7 @@
 import os
 
-ROOT_DIR = '/Users/Jan/Dropbox/Master/LR_Kuehn/'
+# ROOT_DIR = '/Users/Jan/Dropbox/Master/LR_Kuehn/'
+ROOT_DIR = '/home/boelts/Dropbox/Master/LR_Kuehn/'
 
 DATA_PATH = os.path.join(ROOT_DIR, 'data')
 
@@ -21,5 +22,3 @@ SAVE_PATH_FIGURES = os.path.join(ROOT_DIR, 'analysis_figures')
 SAVE_PATH_FIGURES_REST = os.path.join(ROOT_DIR, 'analysis_figures', 'rest_data')
 
 SAVE_PATH_FIGURES_BAROW = os.path.join(ROOT_DIR, 'analysis_figures', 'stimulation_data')
-
-
