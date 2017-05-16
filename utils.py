@@ -690,15 +690,15 @@ def calculate_cole_ratios(lfp_pre, lfp_band, fs):
 
     peak_sharpness = calculate_peak_sharpness(analysis_lfp, peaks, fs=fs)
     trough_sharpness = calculate_peak_sharpness(analysis_lfp, troughs, fs=fs)
-    mean_peak_sharpness = np.mean(peak_sharpness)
-    mean_trough_sharpness = np.mean(trough_sharpness)
+    mean_peak_sharpness = np.median(peak_sharpness)
+    mean_trough_sharpness = np.median(trough_sharpness)
     # extrema sharpness ratio, from the paper
     esr = np.max([mean_peak_sharpness / mean_trough_sharpness, mean_trough_sharpness / mean_peak_sharpness])
 
     # calculate the steepness
     rise_steepness, fall_steepness = calculate_rise_and_fall_steepness(analysis_lfp, extrema)
-    mean_rise_steepness = np.mean(rise_steepness)
-    mean_fall_steepness = np.mean(fall_steepness)
+    mean_rise_steepness = np.median(rise_steepness)
+    mean_fall_steepness = np.median(fall_steepness)
     # rise decay steepness ratio
     rdsr = np.max([mean_rise_steepness / mean_fall_steepness, mean_fall_steepness / mean_rise_steepness])
 
