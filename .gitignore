@@ -1,3 +1,4 @@
 *.m~
 .idea
 .ipynb_checkpoints
+.dropbox.attr
