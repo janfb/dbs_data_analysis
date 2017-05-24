@@ -18,7 +18,7 @@ data_folder = os.path.join(DATA_PATH, 'STN_data_PAC', 'collected')
 file_list = os.listdir(data_folder)
 save_folder = os.path.join(SAVE_PATH_DATA, 'stn')
 
-subject_file_list = [file for file in file_list if file.startswith('subject') and file.endswith('.p')]
+subject_file_list = [file for file in file_list if file.startswith('subject_MC') and file.endswith('.p')]
 
 data_dict = dict()
 
@@ -104,7 +104,7 @@ for file_idx, file in enumerate(subject_file_list):
                     #     plt.show()
 
                     # calculate the sharpness and steepness ratios
-                    esr[epoch_idx], rdsr[epoch_idx] = ut.calculate_cole_ratios(lfp_pre, lfp_band, fs)
+                    esr[epoch_idx], rdsr[epoch_idx] = ut.calculate_cole_ratios(lfp_pre, lfp_band, fs, epoch)
                     mpl[epoch_idx], mpa[epoch_idx] = ut.calculate_mean_phase_amplitude(lfp_band, fs)
 
                 esr_mat[channel_idx, band_idx, condition_idx, :] = esr.mean(), esr.std()

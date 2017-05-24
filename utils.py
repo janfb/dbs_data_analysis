@@ -1,5 +1,5 @@
 from scipy.io import loadmat
-from definitions import DATA_PATH, SAVE_PATH_DATA
+from definitions import DATA_PATH, SAVE_PATH_DATA, SAVE_PATH_FIGURES
 import os
 import scipy.signal
 import numpy as np
@@ -284,7 +284,7 @@ def find_rising_and_falling_zeros(y):
 
     # double check the zeros and correct if possible
     new_zeros = []
-    for i in range(1, zeros.shape[0] - 1):
+    for i in range(0, zeros.shape[0] - 1):
         # for every detected zero index check if neighbors are better and add them if yes. keep it otherwise
         if abs(y[zeros[i] - 1]) < abs(y[zeros[i]]):
             new_zeros.append(zeros[i] - 1)
@@ -303,7 +303,7 @@ def find_rising_and_falling_zeros(y):
 
     # # debug plot
     # # zeros = new_zeros
-    # upto = 50
+    # upto = 2
     # plt.plot(zeros[:upto], y[zeros][:upto], '*', markersize=10)
     # plt.plot(y[:zeros[upto]], 'o')
     # plt.axhline(y=0)
@@ -676,7 +676,7 @@ def peakdet(v, delta, x=None):
     return np.array(maxtab), np.array(mintab)
 
 
-def calculate_cole_ratios(lfp_pre, lfp_band, fs):
+def calculate_cole_ratios(lfp_pre, lfp_band, fs, lfp_raw):
     # COLE ANALYSIS
     # identify time points of rising and falling zero-crossings:
     zeros_rising, zeros_falling, zeros = find_rising_and_falling_zeros(lfp_band)
@@ -702,17 +702,34 @@ def calculate_cole_ratios(lfp_pre, lfp_band, fs):
     # rise decay steepness ratio
     rdsr = np.max([mean_rise_steepness / mean_fall_steepness, mean_fall_steepness / mean_rise_steepness])
 
-    # debug plot
+    # debug plot, plot for presi
     # upto = 10
+    # samples_per_5ms = int( 5 * fs / 1000)
     # zero_idx = zeros[upto]
+    # extrema_to_use = extrema[:upto-1]
+    # sharpness_idx = np.sort(np.array([extrema_to_use - 5, extrema_to_use + 5]).flatten())
+    #
+    # extrema_idx = int(upto / 2 - 1)
+    # time_array = np.linspace(167, zero_idx / fs * 1000, zero_idx)
     # plt.close()
+    #
     # plt.figure(figsize=(15, 5))
-    # plt.plot(lfp_pre[:zero_idx])
-    # plt.plot(lfp_band[:zero_idx], 'o')
-    # plt.plot(zeros[:upto], lfp_band[zeros][:upto], 'go')
+    # plt.plot(time_array, lfp_pre[:zero_idx], label='preprocessed')
+    # plt.xlabel('time [s]')
+    # plt.ylabel('lfp [$\mu V$]')
     # plt.axhline(0)
-    # plt.plot(peaks[:int(upto/2)], lfp_pre[peaks][:int(upto/2)], 'ro')
-    # plt.plot(troughs[:int(upto/2)], lfp_pre[troughs][:int(upto/2)], 'bo')
+    # for sharpness_sample in sharpness_idx:
+    #     plt.axvline(x=time_array[sharpness_sample], color='k', alpha=.7, linewidth=.5)
+    #     plt.plot(time_array[sharpness_sample], lfp_pre[sharpness_sample], 'k*')
+    #
+    # # plt.plot(time_array, lfp_band[:zero_idx], 'o', label='band pass filtered')
+    # # plt.plot(time_array[zeros[:upto]], lfp_band[zeros[:upto]], 'go', label='zeros')
+    # plt.plot(time_array[peaks[:extrema_idx]], lfp_pre[peaks[:extrema_idx]], 'ro', label='peaks')
+    # plt.plot(time_array[troughs[:extrema_idx]], lfp_pre[troughs[:extrema_idx]], 'bo', label='troughs')
+    #
+    # plt.tight_layout()
+    # plt.legend()
+    # plt.savefig(os.path.join(SAVE_PATH_FIGURES, 'pre_sharpness.pdf'))
     # plt.show()
 
     return esr, rdsr
@@ -766,10 +783,29 @@ def calculate_mean_phase_amplitude(lfp_band, fs):
     analystic_signal = scipy.signal.hilbert(lfp_band)
 
     # get the instantaneous phase over time
-    phase = np.unwrap(np.angle(analystic_signal))
+    phase = np.angle(analystic_signal)
 
     # sum up and average the phase vectors on the unit circle
-    circular_mean_vector = np.mean(np.exp(1j * phase))
+    vectors = np.exp(1j * phase)
+    circular_mean_vector = np.mean(vectors)
+
+    plt.close()
+    upto = 1001
+    time_array = np.linspace(167, 167 + upto, upto)
+    fontsize = 15
+    plt.figure(figsize=(15, 5))
+
+    plt.plot(time_array, lfp_band[:upto], label='lfp band')
+    # plt.plot(time_array, phase[:upto], label='phase')
+
+    plt.xlabel('time [ms]', fontsize=fontsize)
+    plt.ylabel('lfp [$\mu V$]', fontsize=fontsize)
+    plt.ylim([-4, 4])
+    plt.legend(prop = {'size': fontsize}, loc=4)
+    plt.tight_layout()
+    plt.savefig(os.path.join(SAVE_PATH_FIGURES, 'mpv_band.pdf'))
+    plt.show()
+    plt.close()
 
     # take the angle of this circular mean phase vector
     circ_mean_angle = np.angle(circular_mean_vector)

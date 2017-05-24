@@ -262,7 +262,6 @@ Produce plots of the correlations between PAC and ESR, RDSR and mean phase vecto
 y_label = 'mean pac'
 x_labels = np.array(['esr', 'rdsr', 'mpv length']).repeat(3)
 
-
 # make a list of data series pairs to have only a single for loop for the figure
 data_pairs_list = [  # first pac vs. esr
                    [pac_results['max_channel_per_condition'], esr_results['max_channel_per_condition']],
@@ -387,15 +386,35 @@ conditions
 
 data_pairs_list = [[pac_results['sig_per_hemi'], esr_results['sig_per_hemi']],
                    [pac_results['sig_per_hemi'], rdsr_results['sig_per_hemi']],
-                   [pac_results['sig_per_hemi'], mpv_results['sig_per_hemi']]]
+                   [pac_results['sig_per_hemi'], mpv_results['sig_per_hemi']],
+                   [esr_results['sig_per_hemi'], rdsr_results['sig_per_hemi']],
+                   [esr_results['sig_per_hemi'], mpv_results['sig_per_hemi']],
+                   [rdsr_results['sig_per_hemi'], mpv_results['sig_per_hemi']]]
 
-title_list = ['Correlations between PAC and {}, pooled across conditions, max significant PAC channels'.format(dings)
+correlation_matrix_idx_l = [4, 8, 12, 9, 13, 14]
+correlation_matrix_idx_u = [1, 2, 3, 6, 7, 11]
+
+# save the final correlation coefs in a matrix for better comparison
+correlation_matrix = np.ones(16)
+
+title_list1 = ['Correlations between PAC and {}, pooled across conditions, max significant PAC channels'.format(dings)
               for dings in ['ESR', 'RDSR', 'MPV length']]
+title_list2 = ['Correlations between ESR and {}, pooled across conditions, max significant PAC channels'.format(dings)
+              for dings in ['RDSR', 'MPV length']]
+title_list3 = ['Correlations between RDSR and {}, pooled across conditions, max significant PAC channels'.format(dings)
+              for dings in ['MPV length']]
 
-figure_filename_list = ['pac_{}_corr_max_sig_channels.pdf'.format(dings) for dings in ['esr', 'rdsr', 'mpv']]
+title_list = title_list1 + title_list2 + title_list3
 
-y_label = 'mean pac'
-x_labels = np.array(['esr', 'rdsr', 'mpv length'])
+figure_filename_list1 = ['pac_{}_corr_max_sig_channels.pdf'.format(dings) for dings in ['esr', 'rdsr', 'mpv']]
+figure_filename_list2 = ['esr_{}_corr_max_sig_channels.pdf'.format(dings) for dings in ['rdsr', 'mpv']]
+figure_filename_list3 = ['rdsr_{}_corr_max_sig_channels.pdf'.format(dings) for dings in ['mpv']]
+figure_filename_list = figure_filename_list1 + figure_filename_list2 + figure_filename_list3
+
+y_label = np.array(['mean pac', 'mean pac', 'mean pac', 'esr', 'esr', 'rdsr'])
+x_labels = np.array(['esr', 'rdsr', 'mpv length', 'rdsr', 'mpv length', 'mpv length'])
+
+band_idx = 0
 
 for data_pair_idx, data_pair in enumerate(data_pairs_list):
     plot_idx = 0
@@ -403,58 +422,71 @@ for data_pair_idx, data_pair in enumerate(data_pairs_list):
 
     plt.figure(figsize=(10, 5))
 
-    for band_idx, band in enumerate(bands):
+    # extract the current data
+    x_all = np.array(d1['all'])
+    y_all = np.array(d2['all'])
 
-        # extract the current data
-        x_all = np.array(d1['all'])
-        y_all = np.array(d2['all'])
+    # regress all data points
+    slope, bias, r, p, stderr = scipy.stats.linregress(x_all, y_all)
+    r = round(r, 2)
+    p = round(p, 3)
 
-        # regress all data points
-        slope, bias, r, p, stderr = scipy.stats.linregress(x_all, y_all)
-        r = round(r, 2)
-        p = round(p, 3)
+    # plot all data points, color coded for conditions
+    plot_idx += 1
+    plt.subplot(1, n_bands, plot_idx)
+    plt.plot(np.array(d1['off']),
+             np.array(d2['off']), '*', markersize=5, label='off')
+    plt.plot(np.array(d1['on']),
+             np.array(d2['on']), '*', markersize=5, label='on')
+    plt.xlabel(x_labels[data_pair_idx])
 
-        # plot all data points, color coded for conditions
-        plot_idx += 1
-        plt.subplot(1, n_bands, plot_idx)
-        plt.plot(np.array(d1['off']),
-                 np.array(d2['off']), '*', markersize=5, label='off')
-        plt.plot(np.array(d1['on']),
-                 np.array(d2['on']), '*', markersize=5, label='on')
-        plt.xlabel(x_labels[data_pair_idx])
+    # only left plot gets ylabel
+    if plot_idx == 1:
+     plt.ylabel(y_label)
 
-        # only left plot gets ylabel
-        if plot_idx == 1:
-         plt.ylabel(y_label)
+    # plot two correlation line, one for all points, one for selected points (outlier free)
+    # plot all
+    xvals = np.linspace(x_all.min(), x_all.max(), x_all.size)
+    plt.plot(xvals, bias + slope * xvals, label='r={}, p={}'.format(r, p))
 
-        # plot two correlation line, one for all points, one for selected points (outlier free)
-        # plot all
-        xvals = np.linspace(x_all.min(), x_all.max(), x_all.size)
-        plt.plot(xvals, bias + slope * xvals, label='r={}, p={}'.format(r, p))
+    # plot the regression line with outliers removed
+    # use n times std away from mean as criterion
+    x_clean, y_clean, x_out, y_out, mask = ut.exclude_outliers(x_all, y_all,
+                                                           n=outlier_std_factor)
 
-        # plot the regression line with outliers removed
-        # use n times std away from mean as criterion
-        x_clean, y_clean, x_out, y_out, mask = ut.exclude_outliers(x_all, y_all,
-                                                               n=outlier_std_factor)
+    # plot the outliers
+    outlier_indices = np.where(np.logical_not(mask))[0]
+    outlier_labels = sig_subject_ids
+    for outlier_idx in range(outlier_indices.shape[0]):
+        plt.plot(x_out[outlier_idx], y_out[outlier_idx], '+', markersize=7,
+                 label=outlier_labels[outlier_indices[outlier_idx]])
 
-        # plot the outliers
-        outlier_indices = np.where(np.logical_not(mask))[0]
-        outlier_labels = sig_subject_ids
-        for outlier_idx in range(outlier_indices.shape[0]):
-            plt.plot(x_out[outlier_idx], y_out[outlier_idx], '+', markersize=7,
-                     label=outlier_labels[outlier_indices[outlier_idx]])
+    # plot the new regression line
+    slope, bias, r, p, stderr = scipy.stats.linregress(x_clean, y_clean)
+    xvals = np.linspace(x_clean.min(), x_clean.max(), x_clean.size)
+    plt.plot(xvals, bias + slope * xvals, label='r={}, p={}, cleaned'.format(round(r, 2), round(p, 4)))
 
-        # plot the new regression line
-        slope, bias, r, p, stderr = scipy.stats.linregress(x_clean, y_clean)
-        xvals = np.linspace(x_clean.min(), x_clean.max(), x_clean.size)
-        plt.plot(xvals, bias + slope * xvals, label='r={}, p={}, cleaned'.format(round(r, 2), round(p, 4)))
+    correlation_matrix[correlation_matrix_idx_l[data_pair_idx]] = r
+    correlation_matrix[correlation_matrix_idx_u[data_pair_idx]] = r
 
-        plt.legend(loc=1, prop={'size': 7})
-        # plt.ylim(ylim)
-        plt.title('{} n={}'.format(band_str[band_idx], x_all.size))
+    plt.legend(loc=1, prop={'size': 7})
+    # plt.ylim(ylim)
+    plt.title('{} n={}'.format(band_str[band_idx], x_all.size))
 
     plt.suptitle(title_list[data_pair_idx])
     figure_filename = figure_filename_list[data_pair_idx]
     plt.savefig(os.path.join(save_folder, figure_filename))
-    plt.show()
+    # plt.show()
     plt.close()
+
+correlation_matrix = np.reshape(correlation_matrix, (4, 4))
+
+print(correlation_matrix)
+plt.imshow(correlation_matrix, interpolation=None, origin='upper', cmap='jet', vmax=1, vmin=-1)
+plt.xticks(np.arange(4), ['pac', 'esr', 'rdsr', 'mpv'], fontsize=15)
+plt.yticks(np.arange(4), ['pac', 'esr', 'rdsr', 'mpv'], fontsize=15)
+plt.gca().xaxis.tick_top()
+plt.colorbar()
+plt.savefig(os.path.join(save_folder, 'correlation_matrix.pdf'))
+# plt.show()
+plt.close()

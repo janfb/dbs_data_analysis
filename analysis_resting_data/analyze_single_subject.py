@@ -4,9 +4,10 @@ import os
 from definitions import SAVE_PATH_FIGURES
 from utils import load_data_spm, get_array_mask, band_pass_filter
 
-filename = 'spmeeg_19.mat'
-channel_name = 'GPiR23'
-d = load_data_spm(filename)
+subject_number = 3
+filename = 'spmeeg_{}.mat'.format(subject_number)
+channel_name = 'GPiL23'
+d = load_data_spm(filename, data_folder='/Users/Jan/Dropbox/Master/LR_Kuehn/data/dystonia_rest/for_python')
 fs = d['fsample'][0][0]
 
 lfp = None
@@ -21,25 +22,35 @@ if lfp is None:
 lfp = lfp - np.mean(lfp)
 
 # filter in theta range:
-lfp_filt = band_pass_filter(y=lfp, fs=fs, band=[4, 12], plot_response=False)
+band = [4, 40]
+lfp_filt = band_pass_filter(y=lfp, fs=fs, band=band, plot_response=False)
 
 # construct the time vector
 dt = 1 / fs
 t = np.arange(0, d['data'].shape[1] * dt, dt)
 
 # design plotting mask
-window_length = 3  # in sec
-window_start = 250
+window_length = 30  # in sec
+window_start = 60
+fontsize = 17
 mask = get_array_mask(t > window_start, t < window_start + window_length)
-plt.figure(figsize=(7, 3))
+plt.figure(figsize=(12, 4))
 plt.plot(t[mask], lfp[mask], label='raw')
-plt.plot(t[mask], lfp_filt[mask], label='filtered')
-plt.ylabel('[$\muV]')
-plt.xlabel('time [s]')
-plt.title('contact pair GPiR23 from case 19')
-plt.legend()
-plt.savefig(os.path.join(SAVE_PATH_FIGURES, 'figure_1C.pdf'))
+plt.plot(t[mask], lfp_filt[mask], label='filtered'.format(band))
+plt.ylabel('[$\mu V$]', fontsize=fontsize)
+plt.xlabel('time [s]', fontsize=fontsize)
+plt.title('lfp, contact pair {}, raw and filtered in band {} Hz'.format(channel_name, band), fontsize=fontsize)
+plt.legend(prop={'size': 17})
+plt.tight_layout()
+# plt.savefig(os.path.join(SAVE_PATH_FIGURES, 'lfp_raw_filtered_example.pdf'))
 # plt.show()
+plt.close()
 
-
-
+t = np.arange(0, 22 * np.pi, 0.01)
+x = np.sin(t)
+plt.figure(figsize=(12, 4))
+plt.plot(t, x)
+plt.xticks([], [])
+plt.ylim([-1.2, 2])
+plt.yticks([])
+plt.show()
