@@ -46,6 +46,13 @@ mpv_results = dict(per_cond_channel=np.zeros((n_bands, n_subject_hemis, n_channe
                    max_channel_per_condition=np.zeros((n_bands, n_subject_hemis, n_conditions)),
                    sig_per_hemi=dict(on=[], off=[]))
 
+beta_amp_results = dict(per_cond_channel=np.zeros((n_bands, n_subject_hemis, n_channels, n_conditions)),
+                        per_channel=np.zeros((n_bands, n_subject_hemis, n_channels)),
+                        per_condition=np.zeros((n_bands, n_subject_hemis, n_conditions)),
+                        per_hemi = np.zeros((n_bands, n_subject_hemis)),
+                        max_channel_per_condition=np.zeros((n_bands, n_subject_hemis, n_conditions)),
+                        sig_per_hemi=dict(on=[], off=[]))
+
 subject_ids = []
 sig_subject_ids = []
 bands = [[10, 20]]  # depricated but needed for indexing
@@ -61,6 +68,7 @@ for hemi_idx, hemi_dict in enumerate(data_dict.values()):
     esr_mat = hemi_dict['esr_mat'][:, :, :, 0]  # extract only the mean
     rdsr_mat = hemi_dict['rdsr_mat'][:, :, :, 0]  # extract only the mean
     mpv_mat = hemi_dict['meanPhaseVec_mat'][:, :, :, 0]  # extract only the mean phase vector length
+    beta_mat = hemi_dict['beta_amp_mat']
     # now shape = (n_channels, n_bands, n_conditions)
 
     # for PAC analysis
@@ -73,6 +81,7 @@ for hemi_idx, hemi_dict in enumerate(data_dict.values()):
     condition_bands = hemi_dict['condition_bands']
     conditions = hemi_dict['conditions']
     f_phase = hemi_dict['f_phase']
+
     # do it for every band
     for band_idx, band in enumerate(bands):
         # for PAC analysis
@@ -88,8 +97,8 @@ for hemi_idx, hemi_dict in enumerate(data_dict.values()):
 
             # prelocate a list of results of the current hemisphere-condition
             pac_channel_values = []
-            result_channel_values = dict(esr_mat=[], rdsr_mat=[], mpv_mat=[])
-            result_mat_keys = ['esr_mat', 'rdsr_mat', 'mpv_mat']
+            result_channel_values = dict(esr_mat=[], rdsr_mat=[], mpv_mat=[], beta_mat=[])
+            result_mat_keys = ['esr_mat', 'rdsr_mat', 'mpv_mat', 'beta_mat']
 
             for channel_idx, channel_label in enumerate(hemi_dict['channel_labels']):
 
@@ -110,8 +119,8 @@ for hemi_idx, hemi_dict in enumerate(data_dict.values()):
                     pac_channel_values.append(pac_amp_phase_band)
 
                 # do the same for the other three results types
-                for result_mat_idx, result_mat in enumerate([esr_mat, rdsr_mat, mpv_mat]):
-                    if hemi_dict['significance_flag'][channel_idx, condition_idx]:
+                if hemi_dict['significance_flag'][channel_idx, condition_idx]:
+                    for result_mat_idx, result_mat in enumerate([esr_mat, rdsr_mat, mpv_mat, beta_mat]):
                         result_channel_values[result_mat_keys[result_mat_idx]].append(result_mat[channel_idx, band_idx, condition_idx])
 
             # append the pac of the channel with the maximum significant pac for later analysis
@@ -120,8 +129,8 @@ for hemi_idx, hemi_dict in enumerate(data_dict.values()):
                 esr_results['sig_per_hemi'][condition].append(np.max(np.array(result_channel_values['esr_mat'])))
                 rdsr_results['sig_per_hemi'][condition].append(np.max(np.array(result_channel_values['rdsr_mat'])))
                 mpv_results['sig_per_hemi'][condition].append(np.max(np.array(result_channel_values['mpv_mat'])))
+                beta_amp_results['sig_per_hemi'][condition].append(np.max(np.array(result_channel_values['beta_mat'])))
                 sig_subject_ids.append(subject_id)
-
 
         # save per condition and channel
         pac_results['per_cond_channel'][band_idx, hemi_idx, :, :] = pac_phase_band
@@ -145,10 +154,12 @@ for hemi_idx, hemi_dict in enumerate(data_dict.values()):
             max_esr = esr_mat[max_channel_idx, band_idx, condition_idx]
             max_rdsr = rdsr_mat[max_channel_idx, band_idx, condition_idx]
             max_mpv = mpv_mat[max_channel_idx, band_idx, condition_idx]
+            max_beta = beta_mat[max_channel_idx, band_idx, condition_idx]
             pac_results['max_channel_per_condition'][band_idx, hemi_idx, condition_idx] = max_pac
             esr_results['max_channel_per_condition'][band_idx, hemi_idx, condition_idx] = max_esr
             rdsr_results['max_channel_per_condition'][band_idx, hemi_idx, condition_idx] = max_rdsr
             mpv_results['max_channel_per_condition'][band_idx, hemi_idx, condition_idx] = max_mpv
+            beta_amp_results['max_channel_per_condition'][band_idx, hemi_idx, condition_idx] = max_beta
 
         # sharpness analysis: average ratios across channels and conditions
         # or look at channels indipendently or conditions
@@ -159,34 +170,46 @@ for hemi_idx, hemi_dict in enumerate(data_dict.values()):
         esr_results['per_cond_channel'][band_idx, hemi_idx, :, :] = esr_mat[:, band_idx, :]
         rdsr_results['per_cond_channel'][band_idx, hemi_idx, :, :] = rdsr_mat[:, band_idx, :]
         mpv_results['per_cond_channel'][band_idx, hemi_idx, :, :] = mpv_mat[:, band_idx, :]
+        beta_amp_results['per_cond_channel'][band_idx, hemi_idx, :, :] = beta_mat[:, band_idx, :]
 
         # save esr per channel
         esr_results['per_channel'][band_idx, hemi_idx, :] = esr_mat[:, band_idx, :].mean(axis=-1)  # average over conditions
         rdsr_results['per_channel'][band_idx, hemi_idx, :] = rdsr_mat[:, band_idx, :].mean(axis=-1)
         mpv_results['per_channel'][band_idx, hemi_idx, :] = mpv_mat[:, band_idx, :].mean(axis=-1)
+        beta_amp_results['per_channel'][band_idx, hemi_idx, :] = beta_mat[:, band_idx, :].mean(axis=-1)
 
         # save esr per condition
         esr_results['per_condition'][band_idx, hemi_idx, :] = esr_mat[:, band_idx, :].mean(axis=0)  # average over channels
         rdsr_results['per_condition'][band_idx, hemi_idx, :] = rdsr_mat[:, band_idx, :].mean(axis=0)
         mpv_results['per_condition'][band_idx, hemi_idx, :] = mpv_mat[:, band_idx, :].mean(axis=0)
+        beta_amp_results['per_condition'][band_idx, hemi_idx, :] = beta_mat[:, band_idx, :].mean(axis=0)
 
         # save esr average over channels and conditions
         esr_results['per_hemi'][band_idx, hemi_idx] = esr_mat[:, band_idx, :].mean()
         rdsr_results['per_hemi'][band_idx, hemi_idx] = rdsr_mat[:, band_idx, :].mean()
         mpv_results['per_hemi'][band_idx, hemi_idx] = mpv_mat[:, band_idx, :].mean()
+        beta_amp_results['per_hemi'][band_idx, hemi_idx] = beta_mat[:, band_idx, :].mean()
 
 # to simplify plotting for the cases where the data was selected based on significant pac values,
 # collapse the different amounts of data in the conditions into a single list / array
-for result_dict in [pac_results, esr_results, rdsr_results, mpv_results]:
+for result_dict in [pac_results, esr_results, rdsr_results, mpv_results, beta_amp_results]:
     result_dict['sig_per_hemi']['all'] = result_dict['sig_per_hemi']['on'] + result_dict['sig_per_hemi']['off']
 
+# plt the beta power OFF vs. ON
+plt.figure(figsize=(10, 5))
+beta_per_condition = beta_amp_results['per_condition'].squeeze()
+beta_on = beta_per_condition[:, 1]
+beta_off = beta_per_condition[:, 0]
+plt.bar([0, 1], [beta_off.mean(), beta_on.mean()])
+plt.xticks([0, 1], ['off', 'on'])
+plt.show()
 
 """
 Make a figure for correlations in every channel across subjects and conditions 
 subplot bands x channels 
 """
 
-outlier_std_factor = 4
+outlier_std_factor = 5
 
 # ratio_strings = ['esr', 'rdsr']
 # ratio_matrix_list = [esr_results, rdsr_results]
@@ -260,7 +283,7 @@ Produce plots of the correlations between PAC and ESR, RDSR and mean phase vecto
 # comment in or out to either plot correlations between PAC and MPV or ESR and MPV
 
 y_label = 'mean pac'
-x_labels = np.array(['esr', 'rdsr', 'mpv length']).repeat(3)
+x_labels = np.array(['esr', 'rdsr', 'mpv length', 'beta amp']).repeat(3)
 
 # make a list of data series pairs to have only a single for loop for the figure
 data_pairs_list = [  # first pac vs. esr
@@ -274,7 +297,8 @@ data_pairs_list = [  # first pac vs. esr
                     # and finally pac vs. mpv
                    [pac_results['max_channel_per_condition'], mpv_results['max_channel_per_condition']],  # A over max channels
                    [pac_results['per_cond_channel'], mpv_results['per_cond_channel']],  # all pooled
-                   [pac_results['per_condition'], mpv_results['per_condition']]]  # average channels
+                   [pac_results['per_condition'], mpv_results['per_condition']],   # average channels
+                   [esr_results['per_cond_channel'], beta_amp_results['per_cond_channel']]]
 
 # title_list = ['Correlations between PAC and {}, pooled across conditions, {}'.format(dings.upper(), bumbs)
 #               for dings, bumbs in [x_labels, analysis_types]]
@@ -289,7 +313,9 @@ title_list = ['Correlations between PAC and ESR, pooled across conditions, max P
 
               'Correlations between PAC and MPV length, pooled across conditions, max PAC channels',
               'Correlations between PAC and MPV length, pooled across conditions and channels',
-              'Correlations between PAC and MPV length, pooled across conditions, averaged over channels']
+              'Correlations between PAC and MPV length, pooled across conditions, averaged over channels',
+
+              'Correlations between ESR and beta power, pooled across conditions and channels']
 
 figure_filename_list = ['pac_esr_corr_max_channels.pdf',
                         'pac_esr_corr_pooled.pdf',
@@ -301,7 +327,8 @@ figure_filename_list = ['pac_esr_corr_max_channels.pdf',
 
                         'pac_mpv_corr_max_channels.pdf',
                         'pac_mpv_corr_pooled.pdf',
-                        'pac_mpv_corr_average_channels.pdf']
+                        'pac_mpv_corr_average_channels.pdf',
+                        'esr_beta_pooled.pdf']
 
 # same between mpv and ratio
 # data_pairs_list = [[mpv_results['per_cond_channel'], ratio_matrix['per_cond_channel']],  # all pooled
@@ -315,63 +342,62 @@ figure_filename_list = ['pac_esr_corr_max_channels.pdf',
 #
 # y_label = ratio_str
 
+band_idx = 0
+
 # plot figures A, B, C
 for data_pair_idx, data_pair in enumerate(data_pairs_list):
-    plot_idx = 0
     d2, d1 = data_pair
 
     plt.figure(figsize=(10, 5))
     # ylim = [d2.flatten().min(), d2.flatten().max()]
 
-    for band_idx, band in enumerate(bands):
+    # extract the current data
+    x_all = d1[band_idx,].flatten()
+    y_all = d2[band_idx,].flatten()
 
-        # extract the current data
-        x_all = d1[band_idx,].flatten()
-        y_all = d2[band_idx,].flatten()
+    # regress all data points
+    slope, bias, r, p, stderr = scipy.stats.linregress(x_all, y_all)
+    r = round(r, 2)
+    p = round(p, 3)
 
-        # regress all data points
-        slope, bias, r, p, stderr = scipy.stats.linregress(x_all, y_all)
-        r = round(r, 2)
-        p = round(p, 3)
+    # plot all data points, color coded for conditions
+    plt.plot(d1[band_idx, ..., 0].flatten(),
+             d2[band_idx, ..., 0].flatten(), '*', markersize=5, label='off')
+    plt.plot(d1[band_idx, ..., 1].flatten(),
+             d2[band_idx, ..., 1].flatten(), '*', markersize=5, label='on')
+    plt.xlabel(x_labels[data_pair_idx])
 
-        # plot all data points, color coded for conditions
-        plot_idx += 1
-        plt.subplot(1, n_bands, plot_idx)
-        plt.plot(d1[band_idx, ..., 0].flatten(),
-                 d2[band_idx, ..., 0].flatten(), '*', markersize=5, label='off')
-        plt.plot(d1[band_idx, ..., 1].flatten(),
-                 d2[band_idx, ..., 1].flatten(), '*', markersize=5, label='on')
-        plt.xlabel(x_labels[data_pair_idx])
+    # only left plot gets ylabel
+    if data_pair_idx < 9:
+        plt.ylabel(y_label)
+    else:
+        plt.ylabel('esr')
 
-        # only left plot gets ylabel
-        if plot_idx == 1:
-         plt.ylabel(y_label)
+    # plot two correlation line, one for all points, one for selected points (outlier free)
+    # plot all
+    xvals = np.linspace(x_all.min(), x_all.max(), x_all.size)
+    plt.plot(xvals, bias + slope * xvals, label='r={}, p={}'.format(r, p))
 
-        # plot two correlation line, one for all points, one for selected points (outlier free)
-        # plot all
-        xvals = np.linspace(x_all.min(), x_all.max(), x_all.size)
-        plt.plot(xvals, bias + slope * xvals, label='r={}, p={}'.format(r, p))
+    # plot the regression line with outliers removed
+    # use n times std away from mean as criterion
+    x_clean, y_clean, x_out, y_out, mask = ut.exclude_outliers(x_all, y_all,
+                                                           n=outlier_std_factor)
 
-        # plot the regression line with outliers removed
-        # use n times std away from mean as criterion
-        x_clean, y_clean, x_out, y_out, mask = ut.exclude_outliers(x_all, y_all,
-                                                               n=outlier_std_factor)
+    # plot the outliers
+    outlier_indices = np.where(np.logical_not(mask))[0]
+    outlier_labels = np.repeat(subject_ids, int(x_all.size / len(subject_ids)))
+    for outlier_idx in range(outlier_indices.shape[0]):
+        plt.plot(x_out[outlier_idx], y_out[outlier_idx], '+', markersize=7,
+                 label=outlier_labels[outlier_indices[outlier_idx]])
 
-        # plot the outliers
-        outlier_indices = np.where(np.logical_not(mask))[0]
-        outlier_labels = np.repeat(subject_ids, int(x_all.size / len(subject_ids)))
-        for outlier_idx in range(outlier_indices.shape[0]):
-            plt.plot(x_out[outlier_idx], y_out[outlier_idx], '+', markersize=7,
-                     label=outlier_labels[outlier_indices[outlier_idx]])
+    # plot the new regression line
+    slope, bias, r, p, stderr = scipy.stats.linregress(x_clean, y_clean)
+    xvals = np.linspace(x_clean.min(), x_clean.max(), x_clean.size)
+    plt.plot(xvals, bias + slope * xvals, label='r={}, p={}, cleaned'.format(round(r, 2), round(p, 4)))
 
-        # plot the new regression line
-        slope, bias, r, p, stderr = scipy.stats.linregress(x_clean, y_clean)
-        xvals = np.linspace(x_clean.min(), x_clean.max(), x_clean.size)
-        plt.plot(xvals, bias + slope * xvals, label='r={}, p={}, cleaned'.format(round(r, 2), round(p, 4)))
-
-        plt.legend(loc=1, prop={'size': 7})
-        # plt.ylim(ylim)
-        plt.title('{} n={}'.format(band_str[band_idx], x_all.size))
+    plt.legend(loc=1, prop={'size': 7})
+    # plt.ylim(ylim)
+    plt.title('{} n={}'.format(band_str[band_idx], x_all.size))
 
     plt.suptitle(title_list[data_pair_idx])
     figure_filename = figure_filename_list[data_pair_idx]
@@ -383,36 +409,45 @@ for data_pair_idx, data_pair in enumerate(data_pairs_list):
 The significance selected data needs an extra treatment because there can be different amounts of data points in the 
 conditions
 """
+n_variables = 5
 
 data_pairs_list = [[pac_results['sig_per_hemi'], esr_results['sig_per_hemi']],
                    [pac_results['sig_per_hemi'], rdsr_results['sig_per_hemi']],
                    [pac_results['sig_per_hemi'], mpv_results['sig_per_hemi']],
+                   [pac_results['sig_per_hemi'], beta_amp_results['sig_per_hemi']],
                    [esr_results['sig_per_hemi'], rdsr_results['sig_per_hemi']],
                    [esr_results['sig_per_hemi'], mpv_results['sig_per_hemi']],
-                   [rdsr_results['sig_per_hemi'], mpv_results['sig_per_hemi']]]
+                   [esr_results['sig_per_hemi'], beta_amp_results['sig_per_hemi']],
+                   [rdsr_results['sig_per_hemi'], mpv_results['sig_per_hemi']],
+                   [rdsr_results['sig_per_hemi'], beta_amp_results['sig_per_hemi']],
+                   [mpv_results['sig_per_hemi'], beta_amp_results['sig_per_hemi']]]
 
-correlation_matrix_idx_l = [4, 8, 12, 9, 13, 14]
-correlation_matrix_idx_u = [1, 2, 3, 6, 7, 11]
+correlation_matrix_idx_l = [5, 10, 15, 20, 11, 16, 21, 17, 22, 23]
+correlation_matrix_idx_u = [1, 2, 3, 4, 7, 8, 9, 13, 14, 19]
 
 # save the final correlation coefs in a matrix for better comparison
-correlation_matrix = np.ones(16)
+correlation_matrix = np.ones(n_variables**2)
 
 title_list1 = ['Correlations between PAC and {}, pooled across conditions, max significant PAC channels'.format(dings)
-              for dings in ['ESR', 'RDSR', 'MPV length']]
+              for dings in ['ESR', 'RDSR', 'MPV length', 'beta amp']]
 title_list2 = ['Correlations between ESR and {}, pooled across conditions, max significant PAC channels'.format(dings)
-              for dings in ['RDSR', 'MPV length']]
+              for dings in ['RDSR', 'MPV length', 'beta amp']]
 title_list3 = ['Correlations between RDSR and {}, pooled across conditions, max significant PAC channels'.format(dings)
-              for dings in ['MPV length']]
+              for dings in ['MPV length', 'beta amp']]
 
-title_list = title_list1 + title_list2 + title_list3
+title_list4 = ['Correlations between MPV length and {}, pooled across conditions, max significant PAC channels'.format(dings)
+              for dings in ['beta amp']]
 
-figure_filename_list1 = ['pac_{}_corr_max_sig_channels.pdf'.format(dings) for dings in ['esr', 'rdsr', 'mpv']]
-figure_filename_list2 = ['esr_{}_corr_max_sig_channels.pdf'.format(dings) for dings in ['rdsr', 'mpv']]
-figure_filename_list3 = ['rdsr_{}_corr_max_sig_channels.pdf'.format(dings) for dings in ['mpv']]
-figure_filename_list = figure_filename_list1 + figure_filename_list2 + figure_filename_list3
+title_list = title_list1 + title_list2 + title_list3 + title_list4
 
-y_label = np.array(['mean pac', 'mean pac', 'mean pac', 'esr', 'esr', 'rdsr'])
-x_labels = np.array(['esr', 'rdsr', 'mpv length', 'rdsr', 'mpv length', 'mpv length'])
+figure_filename_list1 = ['pac_{}_corr_max_sig_channels.pdf'.format(dings) for dings in ['esr', 'rdsr', 'mpv', 'beta amp']]
+figure_filename_list2 = ['esr_{}_corr_max_sig_channels.pdf'.format(dings) for dings in ['rdsr', 'mpv', 'beta amp']]
+figure_filename_list3 = ['rdsr_{}_corr_max_sig_channels.pdf'.format(dings) for dings in ['mpv', 'beta amp']]
+figure_filename_list4 = ['mpv_{}_corr_max_sig_channels.pdf'.format(dings) for dings in ['beta amp']]
+figure_filename_list = figure_filename_list1 + figure_filename_list2 + figure_filename_list3 + figure_filename_list4
+
+y_label = np.array(['mean pac', 'mean pac', 'mean pac', 'mean pac', 'esr', 'esr', 'esr', 'rdsr', 'rdsr', 'mpv length'])
+x_labels = np.array(['esr', 'rdsr', 'mpv length', 'beta amp', 'rdsr', 'mpv length', 'beta amp', 'mpv length', 'beta amp', 'beta_amp'])
 
 band_idx = 0
 
@@ -442,7 +477,7 @@ for data_pair_idx, data_pair in enumerate(data_pairs_list):
 
     # only left plot gets ylabel
     if plot_idx == 1:
-     plt.ylabel(y_label)
+     plt.ylabel(y_label[data_pair_idx])
 
     # plot two correlation line, one for all points, one for selected points (outlier free)
     # plot all
@@ -479,14 +514,15 @@ for data_pair_idx, data_pair in enumerate(data_pairs_list):
     # plt.show()
     plt.close()
 
-correlation_matrix = np.reshape(correlation_matrix, (4, 4))
+correlation_matrix = np.reshape(correlation_matrix, (n_variables, n_variables))
 
 print(correlation_matrix)
 plt.imshow(correlation_matrix, interpolation=None, origin='upper', cmap='jet', vmax=1, vmin=-1)
-plt.xticks(np.arange(4), ['pac', 'esr', 'rdsr', 'mpv'], fontsize=15)
-plt.yticks(np.arange(4), ['pac', 'esr', 'rdsr', 'mpv'], fontsize=15)
+plt.xticks(np.arange(n_variables), ['pac', 'esr', 'rdsr', 'mpv', 'beta amp'], fontsize=15)
+plt.yticks(np.arange(n_variables), ['pac', 'esr', 'rdsr', 'mpv', 'beta amp'], fontsize=15)
 plt.gca().xaxis.tick_top()
 plt.colorbar()
 plt.savefig(os.path.join(save_folder, 'correlation_matrix.pdf'))
 # plt.show()
 plt.close()
+
