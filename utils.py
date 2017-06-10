@@ -286,7 +286,7 @@ def find_rising_and_falling_zeros(y):
     new_zeros = []
     for i in range(0, zeros.shape[0] - 1):
         # for every detected zero index check if neighbors are better and add them if yes. keep it otherwise
-        if abs(y[zeros[i] - 1]) < abs(y[zeros[i]]):
+        if abs(y[zeros[i] - 1]) < abs(y[zeros[i]]) and not zeros[i] == 0:
             new_zeros.append(zeros[i] - 1)
         elif abs(y[zeros[i] + 1]) < abs(y[zeros[i]]):
             new_zeros.append(zeros[i] + 1)
@@ -789,23 +789,24 @@ def calculate_mean_phase_amplitude(lfp_band, fs):
     vectors = np.exp(1j * phase)
     circular_mean_vector = np.mean(vectors)
 
-    plt.close()
-    upto = 1001
-    time_array = np.linspace(167, 167 + upto, upto)
-    fontsize = 15
-    plt.figure(figsize=(15, 5))
-
-    plt.plot(time_array, lfp_band[:upto], label='lfp band')
-    # plt.plot(time_array, phase[:upto], label='phase')
-
-    plt.xlabel('time [ms]', fontsize=fontsize)
-    plt.ylabel('lfp [$\mu V$]', fontsize=fontsize)
-    plt.ylim([-4, 4])
-    plt.legend(prop = {'size': fontsize}, loc=4)
-    plt.tight_layout()
-    plt.savefig(os.path.join(SAVE_PATH_FIGURES, 'mpv_band.pdf'))
-    plt.show()
-    plt.close()
+    # plotting for presentation
+    # plt.close()
+    # upto = 1001
+    # time_array = np.linspace(167, 167 + upto, upto)
+    # fontsize = 15
+    # plt.figure(figsize=(15, 5))
+    #
+    # plt.plot(time_array, lfp_band[:upto], label='lfp band')
+    # # plt.plot(time_array, phase[:upto], label='phase')
+    #
+    # plt.xlabel('time [ms]', fontsize=fontsize)
+    # plt.ylabel('lfp [$\mu V$]', fontsize=fontsize)
+    # plt.ylim([-4, 4])
+    # plt.legend(prop = {'size': fontsize}, loc=4)
+    # plt.tight_layout()
+    # plt.savefig(os.path.join(SAVE_PATH_FIGURES, 'mpv_band.pdf'))
+    # plt.show()
+    # plt.close()
 
     # take the angle of this circular mean phase vector
     circ_mean_angle = np.angle(circular_mean_vector)
