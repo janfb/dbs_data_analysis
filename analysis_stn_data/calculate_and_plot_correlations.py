@@ -5,6 +5,8 @@ import utils as ut
 from definitions import SAVE_PATH_FIGURES, SAVE_PATH_DATA, DATA_PATH
 import pprint
 import scipy.stats
+import analysis_stn_data.plotting_functions as plotter
+
 
 data_folder = os.path.join(SAVE_PATH_DATA, 'stn')
 save_folder = os.path.join(SAVE_PATH_FIGURES, 'stn', 'optimized_bands')
@@ -196,13 +198,13 @@ for result_dict in [pac_results, esr_results, rdsr_results, mpv_results, beta_am
     result_dict['sig_per_hemi']['all'] = result_dict['sig_per_hemi']['on'] + result_dict['sig_per_hemi']['off']
 
 # plt the beta power OFF vs. ON
-plt.figure(figsize=(10, 5))
-beta_per_condition = beta_amp_results['per_condition'].squeeze()
-beta_on = beta_per_condition[:, 1]
-beta_off = beta_per_condition[:, 0]
-plt.bar([0, 1], [beta_off.mean(), beta_on.mean()])
-plt.xticks([0, 1], ['off', 'on'])
-plt.show()
+# plt.figure(figsize=(10, 5))
+# beta_per_condition = beta_amp_results['per_condition'].squeeze()
+# beta_on = beta_per_condition[:, 1]
+# beta_off = beta_per_condition[:, 0]
+# plt.bar([0, 1], [beta_off.mean(), beta_on.mean()])
+# plt.xticks([0, 1], ['off', 'on'])
+# plt.show()
 
 """
 Make a figure for correlations in every channel across subjects and conditions 
@@ -410,6 +412,8 @@ for data_pair_idx, data_pair in enumerate(data_pairs_list):
 The significance selected data needs an extra treatment because there can be different amounts of data points in the 
 conditions
 """
+
+# plot correlation matrix with beta amp, 5 x 5
 n_variables = 5
 
 data_pairs_list = [[pac_results['sig_per_hemi'], esr_results['sig_per_hemi']],
@@ -426,104 +430,78 @@ data_pairs_list = [[pac_results['sig_per_hemi'], esr_results['sig_per_hemi']],
 correlation_matrix_idx_l = [5, 10, 15, 20, 11, 16, 21, 17, 22, 23]
 correlation_matrix_idx_u = [1, 2, 3, 4, 7, 8, 9, 13, 14, 19]
 
-# save the final correlation coefs in a matrix for better comparison
-correlation_matrix = np.ones(n_variables**2)
+title_list1 = [
+    'Correlations between PAC and {}, pooled across conditions, max significant PAC channels'.format(dings)
+    for dings in ['ESR', 'RDSR', 'MPV', 'beta amp']]
+title_list2 = [
+    'Correlations between ESR and {}, pooled across conditions, max significant PAC channels'.format(dings)
+    for dings in ['RDSR', 'MPV', 'beta amp']]
+title_list3 = [
+    'Correlations between RDSR and {}, pooled across conditions, max significant PAC channels'.format(dings)
+    for dings in ['MPV', 'beta amp']]
 
-title_list1 = ['Correlations between PAC and {}, pooled across conditions, max significant PAC channels'.format(dings)
-              for dings in ['ESR', 'RDSR', 'MPV length', 'beta amp']]
-title_list2 = ['Correlations between ESR and {}, pooled across conditions, max significant PAC channels'.format(dings)
-              for dings in ['RDSR', 'MPV length', 'beta amp']]
-title_list3 = ['Correlations between RDSR and {}, pooled across conditions, max significant PAC channels'.format(dings)
-              for dings in ['MPV length', 'beta amp']]
-
-title_list4 = ['Correlations between MPV length and {}, pooled across conditions, max significant PAC channels'.format(dings)
-              for dings in ['beta amp']]
+title_list4 = [
+    'Correlations between PVL and {}, pooled across conditions, max significant PAC channels'.format(dings)
+    for dings in ['beta amp']]
 
 title_list = title_list1 + title_list2 + title_list3 + title_list4
 
-figure_filename_list1 = ['pac_{}_corr_max_sig_channels.pdf'.format(dings) for dings in ['esr', 'rdsr', 'mpv', 'beta amp']]
-figure_filename_list2 = ['esr_{}_corr_max_sig_channels.pdf'.format(dings) for dings in ['rdsr', 'mpv', 'beta amp']]
-figure_filename_list3 = ['rdsr_{}_corr_max_sig_channels.pdf'.format(dings) for dings in ['mpv', 'beta amp']]
-figure_filename_list4 = ['mpv_{}_corr_max_sig_channels.pdf'.format(dings) for dings in ['beta amp']]
+figure_filename_list1 = ['pac_{}_corr_max_sig_channels.pdf'.format(dings) for dings in
+                         ['esr', 'rdsr', 'pvl', 'beta amp']]
+figure_filename_list2 = ['esr_{}_corr_max_sig_channels.pdf'.format(dings) for dings in ['rdsr', 'pvl', 'beta amp']]
+figure_filename_list3 = ['rdsr_{}_corr_max_sig_channels.pdf'.format(dings) for dings in ['pvl', 'beta amp']]
+figure_filename_list4 = ['pvl_{}_corr_max_sig_channels.pdf'.format(dings) for dings in ['beta amp']]
 figure_filename_list = figure_filename_list1 + figure_filename_list2 + figure_filename_list3 + figure_filename_list4
 
-y_label = np.array(['mean pac', 'mean pac', 'mean pac', 'mean pac', 'esr', 'esr', 'esr', 'rdsr', 'rdsr', 'mpv length'])
-x_labels = np.array(['esr', 'rdsr', 'mpv length', 'beta amp', 'rdsr', 'mpv length', 'beta amp', 'mpv length', 'beta amp', 'beta_amp'])
+y_labels = np.array(
+    ['mean pac', 'mean pac', 'mean pac', 'mean pac', 'esr', 'esr', 'esr', 'rdsr', 'rdsr', 'pvl'])
+x_labels = np.array(
+    ['esr', 'rdsr', 'pvl', 'beta amp', 'rdsr', 'pvl', 'beta amp', 'pvl', 'beta amp',
+     'beta_amp'])
 
-band_idx = 0
+matrix_labels = ['pac', 'esr', 'rdsr', 'pvl', 'beta']
 
-for data_pair_idx, data_pair in enumerate(data_pairs_list):
-    plot_idx = 0
-    d2, d1 = data_pair
+plotter.plot_sig_channels_and_correlation_matrix(data_pairs_list, x_labels, y_labels, title_list, figure_filename_list,
+                                             n_bands, sig_subject_ids, outlier_std_factor, n_variables,
+                                             correlation_matrix_idx_l, correlation_matrix_idx_u, band_str, save_folder,
+                                                 matrix_labels)
 
-    plt.figure(figsize=(10, 5))
+# plot correlation matrix with pac, esr, rdsr, pvl, 4 x 4
+n_variables = 4
 
-    # extract the current data
-    x_all = np.array(d1['all'])
-    y_all = np.array(d2['all'])
+data_pairs_list = [[pac_results['sig_per_hemi'], esr_results['sig_per_hemi']],
+                   [pac_results['sig_per_hemi'], rdsr_results['sig_per_hemi']],
+                   [pac_results['sig_per_hemi'], mpv_results['sig_per_hemi']],
+                   [esr_results['sig_per_hemi'], rdsr_results['sig_per_hemi']],
+                   [esr_results['sig_per_hemi'], mpv_results['sig_per_hemi']],
+                   [rdsr_results['sig_per_hemi'], mpv_results['sig_per_hemi']]]
 
-    # regress all data points
-    slope, bias, r, p, stderr = scipy.stats.linregress(x_all, y_all)
-    r = round(r, 2)
-    p = round(p, 3)
+correlation_matrix_idx_l = [4, 8, 12, 9, 13, 14]
+correlation_matrix_idx_u = [1, 2, 3, 6, 7, 11]
 
-    # plot all data points, color coded for conditions
-    plot_idx += 1
-    plt.subplot(1, n_bands, plot_idx)
-    plt.plot(np.array(d1['off']),
-             np.array(d2['off']), '*', markersize=5, label='off')
-    plt.plot(np.array(d1['on']),
-             np.array(d2['on']), '*', markersize=5, label='on')
-    plt.xlabel(x_labels[data_pair_idx])
+title_list1 = [
+    'Correlations between PAC and {}, pooled across conditions, max significant PAC channels'.format(dings)
+    for dings in ['ESR', 'RDSR', 'MPV']]
+title_list2 = [
+    'Correlations between ESR and {}, pooled across conditions, max significant PAC channels'.format(dings)
+    for dings in ['RDSR', 'MPV']]
+title_list3 = [
+    'Correlations between RDSR and {}, pooled across conditions, max significant PAC channels'.format(dings)
+    for dings in ['MPV']]
 
-    # only left plot gets ylabel
-    if plot_idx == 1:
-     plt.ylabel(y_label[data_pair_idx])
+title_list = title_list1 + title_list2 + title_list3
 
-    # plot two correlation line, one for all points, one for selected points (outlier free)
-    # plot all
-    xvals = np.linspace(x_all.min(), x_all.max(), x_all.size)
-    plt.plot(xvals, bias + slope * xvals, label='r={}, p={}'.format(r, p))
+figure_filename_list1 = ['pac_{}_corr_max_sig_channels.pdf'.format(dings) for dings in ['esr', 'rdsr', 'mpv']]
+figure_filename_list2 = ['esr_{}_corr_max_sig_channels.pdf'.format(dings) for dings in ['rdsr', 'mpv']]
+figure_filename_list3 = ['rdsr_{}_corr_max_sig_channels.pdf'.format(dings) for dings in ['mpv']]
+figure_filename_list = figure_filename_list1 + figure_filename_list2 + figure_filename_list3
 
-    # plot the regression line with outliers removed
-    # use n times std away from mean as criterion
-    x_clean, y_clean, x_out, y_out, mask = ut.exclude_outliers(x_all, y_all,
-                                                           n=outlier_std_factor)
+y_labels = np.array(['mean pac', 'mean pac', 'mean pac', 'esr', 'esr', 'rdsr'])
+x_labels = np.array(['esr', 'rdsr', 'mpv', 'rdsr', 'mpv', 'mpv'])
 
-    # plot the outliers
-    outlier_indices = np.where(np.logical_not(mask))[0]
-    outlier_labels = sig_subject_ids
-    for outlier_idx in range(outlier_indices.shape[0]):
-        plt.plot(x_out[outlier_idx], y_out[outlier_idx], '+', markersize=7,
-                 label=outlier_labels[outlier_indices[outlier_idx]])
+matrix_labels = ['pac', 'esr', 'rdsr', 'pvl']
 
-    # plot the new regression line
-    slope, bias, r, p, stderr = scipy.stats.linregress(x_clean, y_clean)
-    xvals = np.linspace(x_clean.min(), x_clean.max(), x_clean.size)
-    plt.plot(xvals, bias + slope * xvals, label='r={}, p={}, cleaned'.format(round(r, 2), round(p, 4)))
-
-    correlation_matrix[correlation_matrix_idx_l[data_pair_idx]] = r
-    correlation_matrix[correlation_matrix_idx_u[data_pair_idx]] = r
-
-    plt.legend(loc=1, prop={'size': 7})
-    # plt.ylim(ylim)
-    plt.title('{} n={}'.format(band_str[band_idx], x_all.size))
-
-    plt.suptitle(title_list[data_pair_idx])
-    figure_filename = figure_filename_list[data_pair_idx]
-    plt.savefig(os.path.join(save_folder, figure_filename))
-    # plt.show()
-    plt.close()
-
-correlation_matrix = np.reshape(correlation_matrix, (n_variables, n_variables))
-
-print(correlation_matrix)
-plt.imshow(correlation_matrix, interpolation=None, origin='upper', cmap='jet', vmax=1, vmin=-1)
-plt.xticks(np.arange(n_variables), ['pac', 'esr', 'rdsr', 'mpv', 'beta amp'], fontsize=15)
-plt.yticks(np.arange(n_variables), ['pac', 'esr', 'rdsr', 'mpv', 'beta amp'], fontsize=15)
-plt.gca().xaxis.tick_top()
-plt.colorbar()
-# plt.savefig(os.path.join(save_folder, 'correlation_matrix.pdf'))
-plt.show()
-plt.close()
-
+plotter.plot_sig_channels_and_correlation_matrix(data_pairs_list, x_labels, y_labels, title_list, figure_filename_list,
+                                                 n_bands, sig_subject_ids, outlier_std_factor, n_variables,
+                                                 correlation_matrix_idx_l, correlation_matrix_idx_u, band_str, save_folder,
+                                                 matrix_labels)

@@ -6,6 +6,7 @@ from definitions import SAVE_PATH_FIGURES, SAVE_PATH_DATA, DATA_PATH
 import scipy.io
 import scipy.signal
 from scipy.ndimage import measurements
+import analysis_stn_data.plotting_functions as plotter
 
 """
 The matlab data is saved in files for every subject condition. one subject condition file contains channels from both 
@@ -125,11 +126,11 @@ for subject_id in subject_list:
             current_sig_phase = sig_matrix[channel_idx, condition_idx, :, mask].mean(axis=1)  # should be shape (61,)
             current_sig_amp = sig_matrix[channel_idx, condition_idx, :, mask].mean(axis=0)  # should be shape (61,)
             # if (np.max(current_sig_phase) > sig_threshold or np.max(current_sig_amp) > sig_threshold) \
-            if max_cluster_size < 250:
+            if max_cluster_size < 200:
                 significant_pac[channel_idx, condition_idx] = 1
 
                 # plot the PAC matrix for poster
-                # ut.plot_sigcluster_illustration_for_poster(sig_matrix, pac_matrix, channel_idx, condition_idx, n_phase,
+                # plotter.plot_sigcluster_illustration_for_poster(sig_matrix, pac_matrix, channel_idx, condition_idx, n_phase,
                 #                                            n_amplitude,
                 #                                            max_cluster_size)
 

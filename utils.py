@@ -7,6 +7,7 @@ import sys
 import pickle
 from scipy.optimize import curve_fit
 import matplotlib.pyplot as plt
+import analysis_stn_data.plotting_functions as plotter
 
 
 def band_pass_iir(y, fs, band):
@@ -715,132 +716,9 @@ def calculate_cole_ratios(lfp_pre, lfp_band, fs, lfp_raw):
     rdsr = np.max([mean_rise_steepness / mean_fall_steepness, mean_fall_steepness / mean_rise_steepness])
 
     # debug plot, plot for presi
-    # plot_ratio_illustration_for_poster(fs, lfp_pre, lfp_band, zeros, extrema, extrema_kind, steepness_indices)
+    # plotter.plot_ratio_illustration_for_poster(fs, lfp_pre, lfp_band, zeros, extrema, extrema_kind, steepness_indices)
 
     return esr, rdsr
-
-
-def plot_sigcluster_illustration_for_poster(sig_matrix, pac_matrix, channel_idx, condition_idx, n_phase, n_amplitude,
-                                            max_cluster_size):
-    """
-    Plot the cluster and the corresponding PAC matrix for a given channel and condition idx. Use fonts for poster size.
-    :param sig_matrix:
-    :param pac_matrix:
-    :param channel_idx:
-    :param condition_idx:
-    :param n_phase:
-    :param n_amplitude:
-    :param max_cluster_size:
-    :return:
-    """
-
-    # plot the PAC matrix for poster
-    fontsize = 20
-    tick_steps = 3
-    tick_size = 15
-    plt.figure(figsize=(11, 8))
-    plt.subplot(121)
-    plt.imshow(sig_matrix[channel_idx, condition_idx,], origin='lower', interpolation='None')
-
-    plt.xticks(np.linspace(0, n_phase, tick_steps), np.linspace(5, 35, tick_steps, dtype=int),
-               fontsize=tick_size)
-    plt.yticks(np.linspace(0, n_amplitude, tick_steps), np.linspace(150, 400, tick_steps, dtype=int),
-               fontsize=tick_size)
-
-    plt.xlabel('Phase frequency [Hz]', fontsize=fontsize)
-    plt.ylabel('Amplitude frequency [Hz]', fontsize=fontsize)
-    plt.title('Significance', fontsize=fontsize)
-
-    plt.subplot(122)
-    plt.imshow(pac_matrix[channel_idx, condition_idx,], origin='lower', interpolation='None',
-               vmin=0.0, vmax=0.08)
-    cbar = plt.colorbar(ticks=[0.02, 0.05, 0.08])
-    cbar.ax.tick_params(labelsize=tick_size)
-    plt.xlabel('Phase frequency [Hz]', fontsize=fontsize)
-    plt.title('PAC', fontsize=fontsize)
-    plt.xticks(np.linspace(0, n_phase, tick_steps), np.linspace(5, 35, tick_steps, dtype=int),
-               fontsize=tick_size)
-    plt.yticks(np.linspace(0, n_amplitude, tick_steps), np.linspace(150, 400, tick_steps, dtype=int),
-               fontsize=tick_size)
-
-    plt.tight_layout()
-    plt.savefig(os.path.join(SAVE_PATH_FIGURES, 'example_pac_cluster{}.pdf'.format(int(max_cluster_size))))
-    plt.show()
-    plt.close()
-
-
-def plot_ratio_illustration_for_poster(fs, lfp_pre, lfp_band, zeros, extrema, extrema_kind, steepness_indices):
-    """
-    Plot a figure for illustration of sharpness ratio and steepness ration calculation. use large fonts for poster.
-    :param fs:
-    :param lfp_pre:
-    :param lfp_band:
-    :param zeros:
-    :param extrema:
-    :param extrema_kind:
-    :param steepness_indices:
-    :return:
-    """
-    upto = 7
-    fontsize = 20
-    markersize = 8
-
-    filter_offset = 167  # in ms
-    samples_per_5ms = int(5 * fs / 1000)
-    last_zero_idx = zeros[upto]
-    extrema_to_use = extrema[:(upto - 1)]
-    steepness_to_use = steepness_indices[:upto - 2]
-    sharpness_idx = np.sort(np.array([extrema_to_use - samples_per_5ms, extrema_to_use + samples_per_5ms]).flatten())
-
-    extrema_idx = int((upto - 1) / 2)
-    last_idx = np.max([last_zero_idx, extrema_to_use.max()])
-    time_array = np.linspace(filter_offset, filter_offset + last_idx / fs * 1000, last_idx)
-    plt.close()
-
-    plt.figure(figsize=(15, 5))
-
-    # plot LFP only up to last but one zero:
-    plt.plot(time_array[:zeros[upto - 1]], lfp_pre[:zeros[upto - 1]], label='preprocessed')
-    plt.plot(time_array[:zeros[upto - 1]], lfp_band[:zeros[upto - 1]], label='beta filtered', color='C1')
-    plt.plot(time_array[zeros[:upto]], lfp_band[zeros[:upto]], 'o', color='C1', markersize=markersize)
-
-    # plot zero line
-    plt.axhline(0, color='grey')
-    ll = extrema_kind.repeat(2)
-
-    # plot +-5ms sharpness markers
-    for idx, sharpness_sample in enumerate(sharpness_idx):
-        # plt.axvline(x=time_array[sharpness_sample], color='k', alpha=.7, linewidth=.5)
-        # color = 'red' if ll[idx] > 0 else 'blue'
-        color = 'm'
-        plt.plot(time_array[sharpness_sample], lfp_pre[sharpness_sample], '*', markersize=markersize, color=color)
-
-    # plot maximum slope markers
-    for steepness_sample in steepness_to_use:
-        plt.plot(time_array[steepness_sample], lfp_pre[steepness_sample], 'd', markersize=markersize, color='g')
-
-    for idx, extrema in enumerate(extrema_to_use):
-        if extrema_kind[idx] > 0:
-            format = '^'
-            label = 'peaks'
-        else:
-            format = 'v'
-            label = 'troughs'
-
-        color = 'red'
-        plt.plot(time_array[extrema], lfp_pre[extrema], format, markersize=markersize, color=color)
-
-    # remove labels for poster figure
-    plt.xticks([], [])
-    plt.yticks([], [])
-    plt.xlabel('time', fontsize=fontsize)
-    plt.ylabel('LFP', fontsize=fontsize)
-    # plt.xlim([time_array[0], time_array[-1]])
-
-    plt.tight_layout()
-    plt.legend(prop={'size': 20})
-    plt.savefig(os.path.join(SAVE_PATH_FIGURES, 'pre_sharpness.pdf'))
-    plt.show()
 
 
 def exclude_outliers(x, y, n=2):
