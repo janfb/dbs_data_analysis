@@ -125,31 +125,13 @@ for subject_id in subject_list:
             current_sig_phase = sig_matrix[channel_idx, condition_idx, :, mask].mean(axis=1)  # should be shape (61,)
             current_sig_amp = sig_matrix[channel_idx, condition_idx, :, mask].mean(axis=0)  # should be shape (61,)
             # if (np.max(current_sig_phase) > sig_threshold or np.max(current_sig_amp) > sig_threshold) \
-            if max_cluster_size > 220:
+            if max_cluster_size < 250:
                 significant_pac[channel_idx, condition_idx] = 1
 
-                # plotting for debugging and presentation
-                plt.close()
-                plt.figure(figsize=(7, 5))
-                plt.subplot(121)
-                plt.ylabel('amplitude frequency')
-                plt.xlabel('phase frequency')
-                plt.imshow(sig_matrix[channel_idx, condition_idx,], origin='lower', interpolation='none')
-                plt.yticks(np.linspace(0, f_amp.size, 7), np.linspace(f_amp[0], f_amp[-1], 7, dtype=int))
-                plt.xticks(np.linspace(0, f_phase.size, 4), np.linspace(f_phase[0], f_phase[-1], 4, dtype=int))
-                plt.title('cluster size = {}'.format(max_cluster_size))
-
-                plt.subplot(122)
-                plt.xlabel('phase frequency')
-                plt.imshow(pac_matrix[channel_idx, condition_idx,], origin='lower', interpolation='none')
-                plt.yticks(np.linspace(0, f_amp.size, 7), np.linspace(f_amp[0], f_amp[-1], 7, dtype=int))
-                plt.xticks(np.linspace(0, f_phase.size, 4), np.linspace(f_phase[0], f_phase[-1], 4, dtype=int))
-                plt.colorbar()
-
-                plt.tight_layout()
-                plt.savefig(os.path.join(SAVE_PATH_FIGURES, 'example_pac_cluster{}.pdf'.format(int(max_cluster_size))))
-                plt.show()
-                plt.close()
+                # plot the PAC matrix for poster
+                # ut.plot_sigcluster_illustration_for_poster(sig_matrix, pac_matrix, channel_idx, condition_idx, n_phase,
+                #                                            n_amplitude,
+                #                                            max_cluster_size)
 
             # plot both, the sig and the smoothed pac mean
             # plt.subplot(411)

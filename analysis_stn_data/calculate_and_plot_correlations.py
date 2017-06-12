@@ -103,7 +103,7 @@ for hemi_idx, hemi_dict in enumerate(data_dict.values()):
             for channel_idx, channel_label in enumerate(hemi_dict['channel_labels']):
 
                 # get the band mask for the current condition and channel
-                current_band = condition_bands[channel_label[0]][condition_idx]
+                current_band = condition_bands[channel_label][condition_idx]
                 phase_band_mask = ut.get_array_mask(f_phase >= current_band[0] , f_phase <= current_band[1]).squeeze()
 
                 # extract pac values for the current phase band, condition and channel
@@ -283,6 +283,7 @@ Produce plots of the correlations between PAC and ESR, RDSR and mean phase vecto
 # comment in or out to either plot correlations between PAC and MPV or ESR and MPV
 
 y_label = 'mean pac'
+x_labels = np.array(['esr', 'rdsr', 'mpv length', 'beta amp']).repeat(3)
 x_labels = np.array(['esr', 'rdsr', 'mpv length', 'beta amp']).repeat(3)
 
 # make a list of data series pairs to have only a single for loop for the figure
@@ -522,7 +523,7 @@ plt.xticks(np.arange(n_variables), ['pac', 'esr', 'rdsr', 'mpv', 'beta amp'], fo
 plt.yticks(np.arange(n_variables), ['pac', 'esr', 'rdsr', 'mpv', 'beta amp'], fontsize=15)
 plt.gca().xaxis.tick_top()
 plt.colorbar()
-plt.savefig(os.path.join(save_folder, 'correlation_matrix.pdf'))
-# plt.show()
+# plt.savefig(os.path.join(save_folder, 'correlation_matrix.pdf'))
+plt.show()
 plt.close()
 
