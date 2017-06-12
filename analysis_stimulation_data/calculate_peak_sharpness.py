@@ -102,7 +102,7 @@ for sub, sub_file in enumerate(file_list):
         esr_matrix[sub, i] = esr
 
         # calculate the steepness
-        rise_steepness, fall_steepness = ut.calculate_rise_and_fall_steepness(analysis_lfp, extrema)
+        rise_steepness, fall_steepness, steepness_indices= ut.calculate_rise_and_fall_steepness(analysis_lfp, extrema)
         mean_rise_steepness = np.mean(rise_steepness)
         mean_fall_steepness = np.mean(fall_steepness)
         # rise decay steepness ratio
