@@ -22,6 +22,7 @@ file_list = os.listdir(data_folder)
 subject_list = ['DF', 'DP', 'JA', 'JB', 'DS', 'JN', 'JP', 'LM', 'MC', 'MW', 'SW', 'WB']
 
 max_cluster_list = []
+cluster_criterion = 150
 
 for subject_id in subject_list:
 
@@ -126,7 +127,7 @@ for subject_id in subject_list:
             current_sig_phase = sig_matrix[channel_idx, condition_idx, :, mask].mean(axis=1)  # should be shape (61,)
             current_sig_amp = sig_matrix[channel_idx, condition_idx, :, mask].mean(axis=0)  # should be shape (61,)
             # if (np.max(current_sig_phase) > sig_threshold or np.max(current_sig_amp) > sig_threshold) \
-            if max_cluster_size < 200:
+            if max_cluster_size > cluster_criterion:
                 significant_pac[channel_idx, condition_idx] = 1
 
                 # plot the PAC matrix for poster
@@ -163,5 +164,6 @@ for subject_id in subject_list:
     file_name = 'subject_{}_lfp_and_pac.p'.format(subject_id)
     ut.save_data(subject_dict, file_name, save_folder)
 
-plt.hist(np.array(max_cluster_list), bins='auto')
-plt.show()
+print('data_points:', np.sum(np.array(max_cluster_list) > cluster_criterion))
+# plt.hist(np.array(max_cluster_list), bins='auto')
+# plt.show()

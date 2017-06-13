@@ -129,17 +129,18 @@ def plot_ratio_illustration_for_poster(fs, lfp_pre, lfp_band, zeros, extrema, ex
     plt.show()
 
 
-def plot_sig_channels_and_correlation_matrix(data_pairs_list, x_labels, y_labels, title_list, figure_filename_list,
-                                             n_bands, sig_subject_ids, outlier_std_factor, n_variables,
-                                             correlation_matrix_idx_l, correlation_matrix_idx_u, band_str, save_folder,
-                                             matrix_labels):
-
-    band_idx = 0
-    tick_size = 15
-    fontsize = 20
+def calculate_sig_channels_and_correlation_matrix(data_pairs_list, x_labels, y_labels, title_list, figure_filename_list,
+                                                  n_bands, sig_subject_ids, outlier_std_factor, n_variables,
+                                                  correlation_matrix_idx_l, correlation_matrix_idx_u, band_str, save_folder):
 
     # save the final correlation coefs in a matrix for better comparison
+    n_corrs = n_variables * (n_variables - 1) / 2
     correlation_matrix = np.ones(n_variables ** 2)
+    slope_matrix = np.zeros(n_corrs)
+    bias_matrix = np.zeros(n_corrs)
+    p_matrix = np.zeros(n_corrs)
+
+    data = []
 
     for data_pair_idx, data_pair in enumerate(data_pairs_list):
         plot_idx = 0
@@ -179,6 +180,9 @@ def plot_sig_channels_and_correlation_matrix(data_pairs_list, x_labels, y_labels
         x_clean, y_clean, x_out, y_out, mask = ut.exclude_outliers(x_all, y_all,
                                                                    n=outlier_std_factor)
 
+        # save the cleaned data
+        data.append([x_clean, y_clean])
+
         # plot the outliers
         outlier_indices = np.where(np.logical_not(mask))[0]
         outlier_labels = sig_subject_ids
@@ -193,10 +197,13 @@ def plot_sig_channels_and_correlation_matrix(data_pairs_list, x_labels, y_labels
 
         correlation_matrix[correlation_matrix_idx_l[data_pair_idx]] = r
         correlation_matrix[correlation_matrix_idx_u[data_pair_idx]] = r
+        bias_matrix[data_pair_idx] = bias
+        slope_matrix[data_pair_idx] = slope
+        p_matrix[data_pair_idx] = p
 
         plt.legend(loc=1, prop={'size': 7})
         # plt.ylim(ylim)
-        plt.title('{} n={}'.format(band_str[band_idx], x_all.size))
+        plt.title('{} n={}'.format(band_str[0], x_all.size))
 
         plt.suptitle(title_list[data_pair_idx])
         figure_filename = figure_filename_list[data_pair_idx]
@@ -205,17 +212,27 @@ def plot_sig_channels_and_correlation_matrix(data_pairs_list, x_labels, y_labels
         plt.close()
 
     correlation_matrix = np.reshape(correlation_matrix, (n_variables, n_variables))
+
+    return correlation_matrix, bias_matrix, slope_matrix, p_matrix, data
+
+
+def plot_correlation_matrix(corr, variable_labels, save_folder):
+
     vmin = -0.5
     vmax = 0.5
-    print(correlation_matrix)
+    tick_size = 15
+    fontsize = 20
+    n_variables = corr.shape[0]
+
+    print(corr)
     # mask the matrix where needed
-    correlation_matrix[np.tril_indices(n_variables)] = 1
-    corrm = np.ma.masked_equal(correlation_matrix, 1)
+    corr[np.tril_indices(n_variables)] = 1
+    corrm = np.ma.masked_equal(corr, 1)
 
     plt.imshow(corrm, interpolation=None, origin='upper', cmap='viridis', vmax=vmax, vmin=vmin, alpha=.8)
-    plt.xticks(np.arange(n_variables), matrix_labels, fontsize=fontsize)
+    plt.xticks(np.arange(n_variables), variable_labels, fontsize=fontsize)
     plt.gca().yaxis.tick_right()
-    plt.yticks(np.arange(n_variables), matrix_labels, fontsize=fontsize)
+    plt.yticks(np.arange(n_variables), variable_labels, fontsize=fontsize)
     plt.gca().xaxis.tick_top()
 
     cbar = plt.colorbar(ticks=[-vmin, 0, vmax], pad=.15)
@@ -224,5 +241,5 @@ def plot_sig_channels_and_correlation_matrix(data_pairs_list, x_labels, y_labels
     plt.tight_layout()
 
     plt.savefig(os.path.join(save_folder, 'correlation_matrix_{}.pdf'.format(n_variables)))
-    plt.show()
+    # plt.show()
     plt.close()

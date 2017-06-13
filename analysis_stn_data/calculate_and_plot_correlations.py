@@ -211,7 +211,7 @@ Make a figure for correlations in every channel across subjects and conditions
 subplot bands x channels 
 """
 
-outlier_std_factor = 5
+outlier_std_factor = 3
 
 # ratio_strings = ['esr', 'rdsr']
 # ratio_matrix_list = [esr_results, rdsr_results]
@@ -461,11 +461,23 @@ x_labels = np.array(
 
 matrix_labels = ['pac', 'esr', 'rdsr', 'pvl', 'beta']
 
-plotter.plot_sig_channels_and_correlation_matrix(data_pairs_list, x_labels, y_labels, title_list, figure_filename_list,
-                                             n_bands, sig_subject_ids, outlier_std_factor, n_variables,
-                                             correlation_matrix_idx_l, correlation_matrix_idx_u, band_str, save_folder,
-                                                 matrix_labels)
+# calculate correlations and collect matrices for this data
+corr, biasm, slopem, pm, data = plotter.calculate_sig_channels_and_correlation_matrix(data_pairs_list, x_labels, y_labels,
+                                                                                title_list, figure_filename_list,
+                                                                                n_bands, sig_subject_ids,
+                                                                                outlier_std_factor, n_variables,
+                                                                                correlation_matrix_idx_l,
+                                                                                correlation_matrix_idx_u,
+                                                                                band_str, save_folder)
 
+# plot correlation matrix
+plotter.plot_correlation_matrix(corr, matrix_labels, save_folder)
+
+# save it
+save_dict = dict(corr=corr, bias_mat=biasm, slope_mat=slopem, p_mat=pm, data=data, variables=matrix_labels)
+ut.save_data(save_dict, 'sig_max_channels_correlation_matrices_n{}.p'.format(n_variables), SAVE_PATH_DATA)
+
+# do the same for 4 variables
 # plot correlation matrix with pac, esr, rdsr, pvl, 4 x 4
 n_variables = 4
 
@@ -501,7 +513,17 @@ x_labels = np.array(['esr', 'rdsr', 'mpv', 'rdsr', 'mpv', 'mpv'])
 
 matrix_labels = ['pac', 'esr', 'rdsr', 'pvl']
 
-plotter.plot_sig_channels_and_correlation_matrix(data_pairs_list, x_labels, y_labels, title_list, figure_filename_list,
-                                                 n_bands, sig_subject_ids, outlier_std_factor, n_variables,
-                                                 correlation_matrix_idx_l, correlation_matrix_idx_u, band_str, save_folder,
-                                                 matrix_labels)
+corr, biasm, slopem, pm, data = plotter.calculate_sig_channels_and_correlation_matrix(data_pairs_list, x_labels, y_labels,
+                                                                                title_list, figure_filename_list,
+                                                                                n_bands, sig_subject_ids,
+                                                                                outlier_std_factor, n_variables,
+                                                                                correlation_matrix_idx_l,
+                                                                                correlation_matrix_idx_u,
+                                                                                band_str, save_folder)
+
+plotter.plot_correlation_matrix(corr, matrix_labels, save_folder)
+
+save_dict = dict(corr=corr, bias_mat=biasm, slope_mat=slopem, p_mat=pm, data=data, variables=matrix_labels)
+ut.save_data(save_dict, 'sig_max_channels_correlation_matrices_n{}.p'.format(n_variables), os.path.join(SAVE_PATH_DATA, 'stn'))
+print('p-vals:')
+print(pm)
