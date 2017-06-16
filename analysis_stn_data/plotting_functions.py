@@ -4,6 +4,8 @@ import os
 from definitions import SAVE_PATH_FIGURES
 import utils as ut
 import scipy.stats
+import scipy.interpolate
+from skimage import measure
 
 
 def plot_sigcluster_illustration_for_poster(sig_matrix, pac_matrix, channel_idx, condition_idx, n_phase, n_amplitude,
@@ -24,7 +26,7 @@ def plot_sigcluster_illustration_for_poster(sig_matrix, pac_matrix, channel_idx,
     fontsize = 20
     tick_steps = 3
     tick_size = 15
-    plt.figure(figsize=(11, 8))
+    plt.figure(figsize=(10, 8))
     plt.subplot(121)
     plt.imshow(sig_matrix[channel_idx, condition_idx,], origin='lower', interpolation='None')
 
@@ -55,19 +57,120 @@ def plot_sigcluster_illustration_for_poster(sig_matrix, pac_matrix, channel_idx,
     plt.close()
 
 
-def plot_ratio_illustration_for_poster(fs, lfp_pre, lfp_band, zeros, extrema, extrema_kind, steepness_indices):
+def plot_beta_band_selection_illustration_for_poster(pac_matrix_sig, pac_matrix_nonsig, sig_matrix1, sig_matrix2,
+                                                     n_phase, n_amplitude,
+                                                     f_phase, f_amp, mask, smoother_pac, max_idx, current_lfp_epochs,
+                                                     subject_id, fs, save=False):
+
+    # plot both, the sig and the smoothed pac mean
+    fontsize = 20
+    y_tick_steps = 3
+    x_tick_steps = 5
+    tick_size = 15
+    legend_size = 15
+
+    vmin = pac_matrix_sig.min()
+    vmax = pac_matrix_sig.max()
+
+    plt.figure(figsize=(15, 6))
+    # plot the PAC matrix
+    plt.subplot2grid((2, 4), (0, 0), rowspan=2)
+    current_pac_data = pac_matrix_nonsig
+    plt.imshow(current_pac_data, interpolation='None', origin='lower', vmin=vmin, vmax=vmax)
+
+    # plot contours of significance
+    contours = measure.find_contours(sig_matrix2, 0)
+    for n, contour in enumerate(contours):
+        plt.plot(contour[:, 1], contour[:, 0], linewidth=.5, color='orange')
+
+    plt.xticks(np.linspace(0, n_phase, y_tick_steps),
+               np.linspace(f_phase.min(), f_phase.max(), y_tick_steps, dtype=int),
+               fontsize=tick_size)
+    plt.yticks(np.linspace(0, n_amplitude, x_tick_steps),
+               np.linspace(f_amp.min(), f_amp.max(), x_tick_steps, dtype=int),
+               fontsize=tick_size)
+    plt.xlabel('Phase frequency [Hz]', fontsize=fontsize)
+    plt.ylabel('Amplitude frequency [Hz]', fontsize=fontsize)
+    plt.title('PAC, discarded', fontsize=fontsize)
+
+    plt.subplot2grid((2, 4), (0, 1), rowspan=2)
+    current_pac_data = pac_matrix_sig
+    plt.imshow(current_pac_data, interpolation='None', origin='lower', vmin=vmin, vmax=vmax)
+
+    # plot contours of significance
+    contours = measure.find_contours(sig_matrix1, 0)
+    for n, contour in enumerate(contours):
+        plt.plot(contour[:, 1], contour[:, 0], linewidth=.5, color='orange')
+
+    plt.xticks(np.linspace(0, n_phase, y_tick_steps),
+               np.linspace(f_phase.min(), f_phase.max(), y_tick_steps, dtype=int),
+               fontsize=tick_size)
+    plt.yticks(np.linspace(0, n_amplitude, x_tick_steps),
+               np.linspace(f_amp.min(), f_amp.max(), x_tick_steps, dtype=int),
+               fontsize=tick_size)
+    plt.xlabel('Phase frequency [Hz]', fontsize=fontsize)
+    plt.title('PAC, accepted', fontsize=fontsize)
+
+    # plot the smoothed PAC values averaged over amplitude frequencies:
+    plt.subplot2grid((2, 4), (0, 2), colspan=2)
+    plt.title('Peak PAC and selected beta range', fontsize=fontsize)
+    plt.plot(f_phase[mask], smoother_pac)
+    plt.ylabel('PAC', fontsize=fontsize)
+    xtick_vals_smoothed = np.linspace(f_phase[mask].min(), f_phase[mask].max(), x_tick_steps, dtype=int)
+    plt.xticks(np.linspace(f_phase[mask].min(), f_phase[mask].max(), x_tick_steps),
+               xtick_vals_smoothed,
+               fontsize=tick_size)
+    y_tick_steps = 3
+    plt.yticks(np.linspace(smoother_pac.min(), smoother_pac.max(), y_tick_steps),
+               np.round(np.linspace(smoother_pac.min(), smoother_pac.max(), y_tick_steps), 2),
+               fontsize=tick_size)
+    # plot the peak
+    plt.axvline(f_phase[mask][max_idx], smoother_pac[max_idx], alpha=.3, color='C1')
+    plt.plot(f_phase[mask][max_idx], smoother_pac[max_idx], 'o', markersize=8, label='peak PAC')
+    plt.legend(frameon=False, prop={'size': legend_size})
+
+    # plot the PSD of the corresponding LFP
+    plt.subplot2grid((2, 4), (1, 2), colspan=2)
+    # calculate psd for every epoch, average across epochs
+    f_psd, psd = ut.calculate_psd(y=current_lfp_epochs[:, 0], fs=fs, window_length=1024)  # to get the dims
+    for epoch_idx, lfp_epoch in enumerate(current_lfp_epochs[:, 1:].T):
+        f_psd, psd_tmp = ut.calculate_psd(y=lfp_epoch, fs=fs, window_length=1024)
+        psd += psd_tmp
+    # divide by n epochs to average
+    psd /= current_lfp_epochs.shape[1]
+    # interpolate the psd to have the same sample point as in the PAC phase dimensions:
+    psd_inter_f = scipy.interpolate.interp1d(f_psd, psd)
+    psd = psd_inter_f(f_phase)
+
+    plt.plot(f_phase[mask], psd[mask])
+
+    plt.xticks(np.linspace(f_phase[mask].min(), f_phase[mask].max(), x_tick_steps),
+               xtick_vals_smoothed,
+               fontsize=tick_size)
+    plt.yticks(np.linspace(psd[mask].min(), psd[mask].max(), y_tick_steps),
+               np.round(np.linspace(psd[mask].min(), psd[mask].max(), y_tick_steps), 1),
+               fontsize=tick_size)
+    plt.xlabel('Frequency [Hz]', fontsize=fontsize)
+    plt.ylabel('PSD', fontsize=fontsize)
+
+    # plot the peak and the selected range
+    plt.axvline(f_phase[mask][max_idx], smoother_pac[max_idx], alpha=.5, color='C1')
+    fill_mask = ut.get_array_mask(f_phase >= (f_phase[mask][max_idx] - 6), f_phase <= (f_phase[mask][max_idx] + 6))
+    plt.fill_between(f_phase, psd[mask].min(), psd[mask].max(), where=fill_mask, color='C1', alpha=0.1,
+                     label='selected')
+    plt.legend(prop={'size': legend_size}, frameon=False)
+    plt.tight_layout()
+    if save:
+        plt.savefig(os.path.join(SAVE_PATH_FIGURES, 'example_beta_range_selection_subj{}.pdf'.format(subject_id)))
+    plt.show()
+
+
+def plot_ratio_illustration_for_poster(fs, lfp_pre, lfp_band, zeros, extrema, extrema_kind, steepness_indices,
+                                       steepness_values):
     """
     Plot a figure for illustration of sharpness ratio and steepness ration calculation. use large fonts for poster.
-    :param fs:
-    :param lfp_pre:
-    :param lfp_band:
-    :param zeros:
-    :param extrema:
-    :param extrema_kind:
-    :param steepness_indices:
-    :return:
     """
-    upto = 7
+    upto = 5
     fontsize = 20
     markersize = 8
 
@@ -76,6 +179,7 @@ def plot_ratio_illustration_for_poster(fs, lfp_pre, lfp_band, zeros, extrema, ex
     last_zero_idx = zeros[upto]
     extrema_to_use = extrema[:(upto - 1)]
     steepness_to_use = steepness_indices[:upto - 2]
+    steepness_values_to_use = steepness_values[:upto - 2]
     sharpness_idx = np.sort(np.array([extrema_to_use - samples_per_5ms, extrema_to_use + samples_per_5ms]).flatten())
 
     extrema_idx = int((upto - 1) / 2)
@@ -102,8 +206,19 @@ def plot_ratio_illustration_for_poster(fs, lfp_pre, lfp_band, zeros, extrema, ex
         plt.plot(time_array[sharpness_sample], lfp_pre[sharpness_sample], '*', markersize=markersize, color=color)
 
     # plot maximum slope markers
-    for steepness_sample in steepness_to_use:
+    slope_factor = -1
+    for idx, steepness_sample in enumerate(steepness_to_use):
         plt.plot(time_array[steepness_sample], lfp_pre[steepness_sample], 'd', markersize=markersize, color='g')
+        # set up a tangent on this point
+        m = slope_factor * (steepness_values_to_use[idx] + .6)
+        slope_factor *= -1
+        y_val = lfp_pre[steepness_sample]
+        x_val = time_array[steepness_sample]
+        bias = y_val - m * x_val
+        tangent = lambda x: m * x + bias
+        tangent_time_array = np.linspace(time_array[steepness_sample] - 2,
+                                         time_array[steepness_sample] + 2, 20)
+        plt.plot(tangent_time_array, tangent(tangent_time_array), color='g')
 
     for idx, extrema in enumerate(extrema_to_use):
         if extrema_kind[idx] > 0:
@@ -124,7 +239,7 @@ def plot_ratio_illustration_for_poster(fs, lfp_pre, lfp_band, zeros, extrema, ex
     # plt.xlim([time_array[0], time_array[-1]])
 
     plt.tight_layout()
-    plt.legend(prop={'size': 20})
+    plt.legend(frameon=False, prop={'size': 20})
     plt.savefig(os.path.join(SAVE_PATH_FIGURES, 'pre_sharpness.pdf'))
     plt.show()
 
@@ -134,7 +249,7 @@ def calculate_sig_channels_and_correlation_matrix(data_pairs_list, x_labels, y_l
                                                   correlation_matrix_idx_l, correlation_matrix_idx_u, band_str, save_folder):
 
     # save the final correlation coefs in a matrix for better comparison
-    n_corrs = n_variables * (n_variables - 1) / 2
+    n_corrs = int(n_variables * (n_variables - 1) / 2)
     correlation_matrix = np.ones(n_variables ** 2)
     slope_matrix = np.zeros(n_corrs)
     bias_matrix = np.zeros(n_corrs)
@@ -218,8 +333,8 @@ def calculate_sig_channels_and_correlation_matrix(data_pairs_list, x_labels, y_l
 
 def plot_correlation_matrix(corr, variable_labels, save_folder):
 
-    vmin = -0.5
-    vmax = 0.5
+    vmin = -1.
+    vmax = 1.
     tick_size = 15
     fontsize = 20
     n_variables = corr.shape[0]
