@@ -24,6 +24,7 @@ def band_pass_iir(y, fs, band):
     b, a = scipy.signal.butter(2, wn, btype='bandpass')
     return scipy.signal.filtfilt(b, a, y)
 
+
 def low_pass_filter(y, fs, cutoff=200, numtaps=250):
     """
     Low pass filter using the window method for FIR filters 
@@ -94,23 +95,29 @@ def calculate_rise_and_fall_steepness(y, extrema):
     rise_steepness = []
     fall_steepness = []
     steepness_indices = []
+    steepness_values = []
 
+    slope_sign = None
     for idx in range(extrema[:-1].size):
         # check whether it is trough or a peak
-        if y[extrema[idx]] < 0:  # case trough
+        if y[extrema[idx] + 1] > y[extrema[idx]]:  # case trough
             # calculate rise steepness: max slope between trough and peak
-            max_slope = np.max(lfp_diff[extrema[idx]:extrema[idx + 1]])  # the next idx is a peak
-            rise_steepness.append(max_slope)
+            dx = lfp_diff[extrema[idx]:extrema[idx + 1]]
+            max_diff = np.max(dx)  # the next idx is a peak
+            rise_steepness.append(max_diff)
+            slope_sign = 1
         else:
             # case peak
-            max_slope = np.max(lfp_diff[extrema[idx]:extrema[idx + 1]])  # the next idx is a trough
-            fall_steepness.append(max_slope)
+            max_diff = np.max(lfp_diff[extrema[idx]:extrema[idx + 1]])  # the next idx is a trough
+            fall_steepness.append(max_diff)
+            slope_sign = -1
 
         # find the absolut index of the maximum steepness
         relative_steepness_index = np.argmax(lfp_diff[extrema[idx]:extrema[idx + 1]])
         steepness_indices.append(relative_steepness_index + extrema[idx])
+        steepness_values.append(slope_sign * max_diff)
 
-    return np.array(rise_steepness), np.array(fall_steepness), steepness_indices
+    return np.array(rise_steepness), np.array(fall_steepness), np.array(steepness_indices), np.array(steepness_values)
 
 
 def find_peaks_and_troughs(y, zeros):
@@ -297,7 +304,8 @@ def find_rising_and_falling_zeros(y):
 
     # double check the zeros and correct if possible
     new_zeros = []
-    for i in range(0, zeros.shape[0] - 1):
+
+    for i in range(0, zeros.size):
         # for every detected zero index check if neighbors are better and add them if yes. keep it otherwise
         if abs(y[zeros[i] - 1]) < abs(y[zeros[i]]) and not zeros[i] == 0:
             new_zeros.append(zeros[i] - 1)
@@ -305,14 +313,14 @@ def find_rising_and_falling_zeros(y):
             new_zeros.append(zeros[i] + 1)
         else:
             new_zeros.append(zeros[i])
-    zeros = np.unique(np.array(new_zeros))
+    zeros_ = np.unique(np.array(new_zeros))
 
-    if y[zeros[0] - 1] > 0:  # falling zero comes first
-        zeros_falling = zeros[0::2]
-        zeros_rising = zeros[1::2]
+    if y[zeros_[0] - 1] > 0:  # falling zero comes first
+        zeros_falling = zeros_[0::2]
+        zeros_rising = zeros_[1::2]
     else:  # rising zero comes first
-        zeros_falling = zeros[1::2]
-        zeros_rising = zeros[0::2]
+        zeros_falling = zeros_[1::2]
+        zeros_rising = zeros_[0::2]
 
     # # debug plot
     # # zeros = new_zeros
@@ -709,14 +717,15 @@ def calculate_cole_ratios(lfp_pre, lfp_band, fs, lfp_raw):
     esr = np.max([mean_peak_sharpness / mean_trough_sharpness, mean_trough_sharpness / mean_peak_sharpness])
 
     # calculate the steepness
-    rise_steepness, fall_steepness, steepness_indices = calculate_rise_and_fall_steepness(analysis_lfp, extrema)
+    rise_steepness, fall_steepness, steepness_indices, steepness_values = calculate_rise_and_fall_steepness(analysis_lfp, extrema)
     mean_rise_steepness = np.median(rise_steepness)
     mean_fall_steepness = np.median(fall_steepness)
     # rise decay steepness ratio
     rdsr = np.max([mean_rise_steepness / mean_fall_steepness, mean_fall_steepness / mean_rise_steepness])
 
     # debug plot, plot for presi
-    # plotter.plot_ratio_illustration_for_poster(fs, lfp_pre, lfp_band, zeros, extrema, extrema_kind, steepness_indices)
+    # plotter.plot_ratio_illustration_for_poster(fs, lfp_pre, lfp_band, zeros, extrema, extrema_kind, steepness_indices,
+    #                                            steepness_values, save=False)
 
     return esr, rdsr
 
@@ -800,3 +809,14 @@ def calculate_mean_phase_amplitude(lfp_band, fs):
     circ_mean_length = np.abs(circular_mean_vector)
 
     return circ_mean_length, circ_mean_angle
+
+
+def find_artifact_in_epoch(lfp_pre, std_crit=5):
+
+    artifact = False
+    # zero mean
+    x = lfp_pre - lfp_pre.mean()
+    # check amptidue
+    if x.max() > std_crit * x.std():
+        artifact = True
+    return artifact
