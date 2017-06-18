@@ -166,7 +166,7 @@ def plot_beta_band_selection_illustration_for_poster(pac_matrix_sig, pac_matrix_
 
 
 def plot_ratio_illustration_for_poster(fs, lfp_pre, lfp_band, zeros, extrema, extrema_kind, steepness_indices,
-                                       steepness_values):
+                                       steepness_values, save=False):
     """
     Plot a figure for illustration of sharpness ratio and steepness ration calculation. use large fonts for poster.
     """
@@ -196,7 +196,6 @@ def plot_ratio_illustration_for_poster(fs, lfp_pre, lfp_band, zeros, extrema, ex
 
     # plot zero line
     plt.axhline(0, color='grey')
-    ll = extrema_kind.repeat(2)
 
     # plot +-5ms sharpness markers
     for idx, sharpness_sample in enumerate(sharpness_idx):
@@ -206,12 +205,10 @@ def plot_ratio_illustration_for_poster(fs, lfp_pre, lfp_band, zeros, extrema, ex
         plt.plot(time_array[sharpness_sample], lfp_pre[sharpness_sample], '*', markersize=markersize, color=color)
 
     # plot maximum slope markers
-    slope_factor = -1
     for idx, steepness_sample in enumerate(steepness_to_use):
         plt.plot(time_array[steepness_sample], lfp_pre[steepness_sample], 'd', markersize=markersize, color='g')
         # set up a tangent on this point
-        m = slope_factor * (steepness_values_to_use[idx] + .6)
-        slope_factor *= -1
+        m = (steepness_values_to_use[idx]) / 0.4
         y_val = lfp_pre[steepness_sample]
         x_val = time_array[steepness_sample]
         bias = y_val - m * x_val
@@ -240,8 +237,9 @@ def plot_ratio_illustration_for_poster(fs, lfp_pre, lfp_band, zeros, extrema, ex
 
     plt.tight_layout()
     plt.legend(frameon=False, prop={'size': 20})
-    plt.savefig(os.path.join(SAVE_PATH_FIGURES, 'pre_sharpness.pdf'))
-    plt.show()
+    if save:
+        plt.savefig(os.path.join(SAVE_PATH_FIGURES, 'pre_sharpness.pdf'))
+        plt.show()
 
 
 def calculate_sig_channels_and_correlation_matrix(data_pairs_list, x_labels, y_labels, title_list, figure_filename_list,

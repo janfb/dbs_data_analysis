@@ -97,6 +97,7 @@ for subject_id in subject_list:
     sig_threshold = 0.3
 
     # for every channel and condition in each condition, select a good PAC phase frequency range
+    # bet band selection illustration plot
     for channel_idx, channel_label in enumerate(channel_labels):
 
         # the customized freqeuncy bands are saved per hemisphere, therefore we have to find out the current hemi
@@ -107,12 +108,15 @@ for subject_id in subject_list:
 
         for condition_idx, condition in enumerate(conditions):
 
+            # get current lfp data
+            current_lfp_epochs = lfp_dict[condition]['data'][channel_idx]
+
             # consider reasonable beta range
-            mask = ut.get_array_mask(f_phase > 10, f_phase < 40).squeeze()
+            mask = ut.get_array_mask(f_phase >= 12, f_phase <= 40).squeeze()
             f_mask = f_phase[mask]
             data = pac_phase[channel_idx, condition_idx, mask]
             # smooth the mean PAC
-            smoother_pac = ut.smooth_with_mean_window(data, window_size=5)
+            smoother_pac = ut.smooth_with_mean_window(data, window_size=3)
             max_idx = np.argmax(smoother_pac)
             # sum logical significance values across the amplitude frequency dimension
             # calculate the binary groups in the significance map
@@ -130,35 +134,22 @@ for subject_id in subject_list:
             if max_cluster_size > cluster_criterion:
                 significant_pac[channel_idx, condition_idx] = 1
 
-                # plot the PAC matrix for poster
-                # plotter.plot_sigcluster_illustration_for_poster(sig_matrix, pac_matrix, channel_idx, condition_idx, n_phase,
-                #                                            n_amplitude,
-                #                                            max_cluster_size)
+            # plotter.plot_beta_band_selection_illustration_for_poster(pac_matrix[channel_idx, condition_idx,],
+            #                                                          pac_matrix[channel_idx, condition_idx,],
+            #                                                          sig_matrix[channel_idx, condition_idx,],
+            #                                                          sig_matrix[channel_idx, condition_idx,], n_phase,
+            #                                                          n_amplitude,
+            #                                                          f_phase, f_amp, mask, smoother_pac, max_idx,
+            #                                                          current_lfp_epochs,
+            #                                                          subject_id, fs)
 
-            # plot both, the sig and the smoothed pac mean
-            # plt.subplot(411)
-            # plt.plot(current_sig_phase)
-            # plt.subplot(412)
-            # plt.plot(current_sig_amp)
-            # plt.subplot(413)
-            # plt.plot(smoother_pac)
-            # plt.subplot(414)
-            # plt.imshow(pac_matrix[channel_idx, condition_idx,], origin='lower')
-            # plt.show()
-
-            # plt.subplot(1, 2, 1)
-            # plt.title('Subject {}, {}'.format(subject_id, 'left'))
-            # plt.plot(f_mask, data, alpha=.5)
-            # plt.plot(f_mask, smoother_pac_left, label=condition)
-            # plt.plot(f_mask[max_idx], smoother_pac_left[max_idx], 'ro')
-            # plt.legend()
             # select the band +-5 Hz around the peak
-
             bands[current_hemi][channel_label].append([f_mask[max_idx]- frequency_range_halflength,
                                                        f_mask[max_idx] + frequency_range_halflength])
 
     # save them in a dict and save the dict to disk
-    subject_dict = dict(lfp=lfp_dict, pac=pac_dict, pac_matrix=pac_matrix, id=subject_id, fs=fs, bands=bands,
+    subject_dict = dict(lfp=lfp_dict, pac=pac_dict, sig_matrix=sig_matrix, pac_matrix=pac_matrix, id=subject_id, fs=fs,
+                        bands=bands,
                         conditions=conditions, channel_labels=channel_labels, sig_flag_matrix=significant_pac)
     print(bands)
     file_name = 'subject_{}_lfp_and_pac.p'.format(subject_id)

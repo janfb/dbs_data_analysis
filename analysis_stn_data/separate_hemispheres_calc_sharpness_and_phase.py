@@ -88,7 +88,7 @@ for file_idx, file in enumerate(subject_file_list):
 
                     # do preprocessing a la Cole et al
                     # low pass filter
-                    lfp_pre = ut.low_pass_filter(y=epoch, fs=fs, cutoff=200)
+                    lfp_pre = ut.low_pass_filter(y=epoch, fs=fs, cutoff=100, numtaps=250)
 
                     # extract beta amplitude
                     # calculate psd
@@ -114,6 +114,7 @@ for file_idx, file in enumerate(subject_file_list):
                     #     plt.show()
 
                     # calculate the sharpness and steepness ratios
+                    # print(file_idx, condition_idx, channel_idx, epoch_idx)
                     esr[epoch_idx], rdsr[epoch_idx] = ut.calculate_cole_ratios(lfp_pre, lfp_band, fs, epoch)
                     mpl[epoch_idx], mpa[epoch_idx] = ut.calculate_mean_phase_amplitude(lfp_band, fs)
 
