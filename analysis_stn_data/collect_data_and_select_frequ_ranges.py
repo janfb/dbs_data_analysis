@@ -22,6 +22,7 @@ file_list = os.listdir(data_folder)
 subject_list = ['DF', 'DP', 'JA', 'JB', 'DS', 'JN', 'JP', 'LM', 'MC', 'MW', 'SW', 'WB']
 
 max_cluster_list = []
+# number of connected significant bins to call it a cluster
 cluster_criterion = 150
 
 for subject_id in subject_list:
@@ -33,11 +34,13 @@ for subject_id in subject_list:
 
     # for every subject there should be 6 files: lfp, pac and significance-pac files for ON and OFF conditions.
     for file_idx, file in enumerate(subject_file_list):
+        # load matlab file as dict
         super_dict[file] = scipy.io.loadmat(os.path.join(data_folder, file))
 
     # collect data
     lfp_dict = dict(off=super_dict['data_{}_OFF.mat'.format(subject_id)],
                     on=super_dict['data_{}_ON.mat'.format(subject_id)])
+    # get sampling rate
     fs = lfp_dict['on']['fsample'][0][0]
 
     pac_dict = dict(off=super_dict['PAC_{}_OFF.mat'.format(subject_id)],
@@ -49,13 +52,14 @@ for subject_id in subject_list:
     # extract the left and right hemisphere channels
     # channel labels will be same within a subject
     channel_labels = np.squeeze(lfp_dict['on']['channels'])
+    # remove singleton dimension
     channel_labels = [chan[0] for chan in channel_labels]
     right_channels = [chan for chan in channel_labels if chan.startswith('STN_R')]
     left_channels = [chan for chan in channel_labels if chan.startswith('STN_L')]
     left_channel_idx = [channel_labels.index(lc) for lc in left_channels]
     right_channel_idx = [channel_labels.index(rc) for rc in right_channels]
 
-    # now extract the PAC data
+    # extract the PAC data
     f_amp = pac_dict['on']['F_amp'].squeeze()
     f_phase = pac_dict['on']['F_phase'].squeeze()
     conditions = ['off', 'on']
@@ -100,7 +104,7 @@ for subject_id in subject_list:
     # bet band selection illustration plot
     for channel_idx, channel_label in enumerate(channel_labels):
 
-        # the customized freqeuncy bands are saved per hemisphere, therefore we have to find out the current hemi
+        # the customized freqeuncy bands are saved per hemisphere, therefore we have to find the current hemi
         current_hemi = 'left' if channel_label in left_channels else 'right'
 
         # add a new list for condition bands of the current channel
@@ -134,14 +138,14 @@ for subject_id in subject_list:
             if max_cluster_size > cluster_criterion:
                 significant_pac[channel_idx, condition_idx] = 1
 
-            # plotter.plot_beta_band_selection_illustration_for_poster(pac_matrix[channel_idx, condition_idx,],
-            #                                                          pac_matrix[channel_idx, condition_idx,],
-            #                                                          sig_matrix[channel_idx, condition_idx,],
-            #                                                          sig_matrix[channel_idx, condition_idx,], n_phase,
-            #                                                          n_amplitude,
-            #                                                          f_phase, f_amp, mask, smoother_pac, max_idx,
-            #                                                          current_lfp_epochs,
-            #                                                          subject_id, fs)
+            plotter.plot_beta_band_selection_illustration_for_poster(pac_matrix[channel_idx, condition_idx,],
+                                                                     pac_matrix[channel_idx, condition_idx,],
+                                                                     sig_matrix[channel_idx, condition_idx,],
+                                                                     sig_matrix[channel_idx, condition_idx,], n_phase,
+                                                                     n_amplitude,
+                                                                     f_phase, f_amp, mask, smoother_pac, max_idx,
+                                                                     current_lfp_epochs,
+                                                                     subject_id, fs)
 
             # select the band +-5 Hz around the peak
             bands[current_hemi][channel_label].append([f_mask[max_idx]- frequency_range_halflength,

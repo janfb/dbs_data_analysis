@@ -92,11 +92,11 @@ def plot_beta_band_selection_illustration_for_poster(pac_matrix_sig, pac_matrix_
     plt.xlabel('Phase frequency [Hz]', fontsize=fontsize)
     plt.ylabel('Amplitude frequency [Hz]', fontsize=fontsize)
     plt.title('PAC, discarded', fontsize=fontsize)
+    plt.colorbar(pad=0.02, fraction=.09, ticks=np.round([vmin + 0.01, np.mean((vmin + 0.01, vmax - 0.01)), vmax - 0.01], 2))
 
     plt.subplot2grid((2, 4), (0, 1), rowspan=2)
     current_pac_data = pac_matrix_sig
     plt.imshow(current_pac_data, interpolation='None', origin='lower', vmin=vmin, vmax=vmax)
-
     # plot contours of significance
     contours = measure.find_contours(sig_matrix1, 0)
     for n, contour in enumerate(contours):
@@ -110,6 +110,7 @@ def plot_beta_band_selection_illustration_for_poster(pac_matrix_sig, pac_matrix_
                fontsize=tick_size)
     plt.xlabel('Phase frequency [Hz]', fontsize=fontsize)
     plt.title('PAC, accepted', fontsize=fontsize)
+    plt.tight_layout()
 
     # plot the smoothed PAC values averaged over amplitude frequencies:
     plt.subplot2grid((2, 4), (0, 2), colspan=2)
