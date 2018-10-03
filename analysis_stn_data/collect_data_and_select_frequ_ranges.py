@@ -138,14 +138,14 @@ for subject_id in subject_list:
             if max_cluster_size > cluster_criterion:
                 significant_pac[channel_idx, condition_idx] = 1
 
-            plotter.plot_beta_band_selection_illustration_for_poster(pac_matrix[channel_idx, condition_idx,],
-                                                                     pac_matrix[channel_idx, condition_idx,],
-                                                                     sig_matrix[channel_idx, condition_idx,],
-                                                                     sig_matrix[channel_idx, condition_idx,], n_phase,
-                                                                     n_amplitude,
-                                                                     f_phase, f_amp, mask, smoother_pac, max_idx,
-                                                                     current_lfp_epochs,
-                                                                     subject_id, fs)
+            # plotter.plot_beta_band_selection_illustration_for_poster(pac_matrix[channel_idx, condition_idx,],
+            #                                                          pac_matrix[channel_idx, condition_idx,],
+            #                                                          sig_matrix[channel_idx, condition_idx,],
+            #                                                          sig_matrix[channel_idx, condition_idx,], n_phase,
+            #                                                          n_amplitude,
+            #                                                          f_phase, f_amp, mask, smoother_pac, max_idx,
+            #                                                          current_lfp_epochs,
+            #                                                          subject_id, fs)
 
             # select the band +-5 Hz around the peak
             bands[current_hemi][channel_label].append([f_mask[max_idx]- frequency_range_halflength,
