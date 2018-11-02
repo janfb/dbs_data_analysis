@@ -6,7 +6,7 @@ from definitions import SAVE_PATH_FIGURES, SAVE_PATH_DATA, DATA_PATH
 import scipy.io
 import scipy.signal
 from scipy.ndimage import measurements
-import analysis_stn_data.plotting_functions as plotter
+import plotting_functions as plotter
 
 """
 The matlab data is saved in files for every subject condition. one subject condition file contains channels from both 
@@ -14,8 +14,9 @@ hemispheres. The PAC analysis results from Bernadette's analysis are saved in se
 This script collects the lfp data and the pac results of one subject into a single dictionary and pickles it.  
 """
 
-
+# origin folder
 data_folder = os.path.join(DATA_PATH, 'STN_data_PAC')
+# destination folder
 save_folder = os.path.join(DATA_PATH, 'STN_data_PAC', 'collected')
 file_list = os.listdir(data_folder)
 
@@ -100,8 +101,8 @@ for subject_id in subject_list:
     # set a threshold for the locigal mean over amplitude frequencies
     sig_threshold = 0.3
 
-    # for every channel and condition in each condition, select a good PAC phase frequency range
-    # bet band selection illustration plot
+    # for every channel and condition in each hemisphere, select a good PAC phase frequency range
+    # best band selection illustration plot
     for channel_idx, channel_label in enumerate(channel_labels):
 
         # the customized freqeuncy bands are saved per hemisphere, therefore we have to find the current hemi
