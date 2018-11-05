@@ -27,7 +27,6 @@ subject_list = [input_file['patient'][i][0][0] for i in range(len(input_file['pa
 channels = [input_file['channels'][i][0][0] for i in range(len(input_file['channels']))]
 condition_list = [input_file['conditions'][i][0][0] for i in range(len(input_file['conditions']))]
 beta_bands = list(map(list, list(input_file['beta_bands'])))
-print(channels)
 assert len(beta_bands) == len(subject_list)
 
 # list of subject ids and list of corresponding beta bands read from a .mat file with a struct:
@@ -77,7 +76,7 @@ for subject_idx, subject_id in enumerate(subject_list):
     n_samples, n_epochs = condition_dict['data'].shape[1:]
 
     # find channel index for the current subject
-    subject_channels = list(condition_dict['channels'])
+    subject_channels = [condition_dict['channels'].squeeze()[i][0] for i in range(condition_dict['channels'].squeeze().size)]
     channel_idx = subject_channels.index(channels[subject_idx])
     channel_lfp = condition_dict['data'][channel_idx]
 
@@ -121,9 +120,9 @@ for subject_idx, subject_id in enumerate(subject_list):
     beta_amp_mat = np.mean(beta_amp)
 
     # save values for the current subject
-    measures['esr'][subject_id] = esr_mat
-    measures['rdsr'][subject_id] = rdsr_mat
-    measures['pvl'][subject_id] = meanPhaseVec_mat
+    measures['esr'][subject_id] = {subject_channels[channel_idx] : {condition_list[subject_idx] : esr_mat}}
+    measures['rdsr'][subject_id] = {subject_channels[channel_idx] : {condition_list[subject_idx] : rdsr_mat}}
+    measures['pvl'][subject_id] = {subject_channels[channel_idx] : {condition_list[subject_idx] : meanPhaseVec_mat}}
 
     # print results for testing
     print('Subject ID: {}, beta band {}, channel {}, condition {}'.format(subject_id,
