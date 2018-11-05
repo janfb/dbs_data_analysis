@@ -34,9 +34,7 @@ assert len(beta_bands) == len(subject_list)
 assert len(beta_bands) == len(subject_list)
 
 # output
-measures = dict(esr=dict(),
-                rdsr=dict(),
-                pvl=dict())
+result_dict = dict()
 
 # define path to the data folder holding the STN data
 file_list = os.listdir(data_folder)
@@ -120,22 +118,24 @@ for subject_idx, subject_id in enumerate(subject_list):
     beta_amp_mat = np.mean(beta_amp)
 
     # save values for the current subject
-    measures['esr'][subject_id] = {subject_channels[channel_idx] : {condition_list[subject_idx] : esr_mat}}
-    measures['rdsr'][subject_id] = {subject_channels[channel_idx] : {condition_list[subject_idx] : rdsr_mat}}
-    measures['pvl'][subject_id] = {subject_channels[channel_idx] : {condition_list[subject_idx] : meanPhaseVec_mat}}
+    result_dict[subject_id] = dict(esr=esr_mat, rdsr=rdsr_mat, pvl=meanPhaseVec_mat,
+                                   channel=subject_channels[channel_idx],
+                                   condition=condition_list[subject_idx],
+                                   beta_band=beta_bands[subject_idx])
 
+    print(result_dict[subject_id])
     # print results for testing
     print('Subject ID: {}, beta band {}, channel {}, condition {}'.format(subject_id,
                                                                           beta_bands[subject_idx],
                                                                           channels[subject_idx],
                                                                           condition_list[subject_idx]))
-measures['subject_list'] = subject_list
-measures['channel_list'] = channels
-measures['beta_bands'] = beta_bands
-measures['condition_list'] = condition_list
+result_dict['subject_list'] = subject_list
+result_dict['channel_list'] = channels
+result_dict['beta_bands'] = beta_bands
+result_dict['condition_list'] = condition_list
 
 # for testing
-print(measures)
+print(result_dict)
 
 # save results
-scipy.io.savemat(os.path.join(save_folder, 'results_ESR_RDSR_PLV.mat'), measures)
+scipy.io.savemat(os.path.join(save_folder, 'results_ESR_RDSR_PLV.mat'), result_dict)
