@@ -21,20 +21,19 @@ length and angle of the phase vector for the PLV measure.
 save_folder = os.path.abspath(os.path.join('../../', 'analysis_data'))
 data_folder = os.path.abspath(os.path.join('../../', 'data'))
 
-input_file = scipy.io.loadmat('example_input.mat')
+input_file = scipy.io.loadmat('example2_input.mat')
 
 subject_list = [input_file['patient'][i][0][0] for i in range(len(input_file['patient']))]
 channels = [input_file['channels'][i][0][0] for i in range(len(input_file['channels']))]
 condition_list = [input_file['conditions'][i][0][0] for i in range(len(input_file['conditions']))]
 beta_bands = list(map(list, list(input_file['beta_bands'])))
-assert len(beta_bands) == len(subject_list)
 
 # list of subject ids and list of corresponding beta bands read from a .mat file with a struct:
 
 assert len(beta_bands) == len(subject_list)
 
 # output
-result_dict = dict()
+result_dict = {subject_id: dict() for subject_id in subject_list}
 
 # define path to the data folder holding the STN data
 file_list = os.listdir(data_folder)
@@ -117,11 +116,19 @@ for subject_idx, subject_id in enumerate(subject_list):
     meanPhaseVec_mat = mpl.mean(), mpa.mean()
     beta_amp_mat = np.mean(beta_amp)
 
+    # check and prelocate keys
+    if subject_channels[channel_idx] not in result_dict[subject_id].keys():
+        result_dict[subject_id][subject_channels[channel_idx]] = dict()
+
+    if condition_list[subject_idx] not in result_dict[subject_id][subject_channels[channel_idx]].keys():
+        result_dict[subject_id][subject_channels[channel_idx]][condition_list[subject_idx]] = dict()
+
+    if str(beta_bands[subject_idx]) not in result_dict[subject_id][subject_channels[channel_idx]][condition_list[subject_idx]].keys():
+        result_dict[subject_id][subject_channels[channel_idx]][condition_list[subject_idx]][str(beta_bands[subject_idx])] = dict()
+
     # save values for the current subject
-    result_dict[subject_id] = dict(esr=esr_mat, rdsr=rdsr_mat, pvl=meanPhaseVec_mat,
-                                   channel=subject_channels[channel_idx],
-                                   condition=condition_list[subject_idx],
-                                   beta_band=beta_bands[subject_idx])
+    result_dict[subject_id][subject_channels[channel_idx]][condition_list[subject_idx]][str(beta_bands[subject_idx])] =\
+        dict(esr=esr_mat, rdsr=rdsr_mat, pvl=meanPhaseVec_mat)
 
     print(result_dict[subject_id])
     # print results for testing
