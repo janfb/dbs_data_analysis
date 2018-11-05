@@ -7,19 +7,14 @@ sys.path.append('../')
 import utils as ut
 
 """
-This script will calculate the three measures of nonsinusoidalness for a given list of subjects and beta bands. 
-The beta bands are subject specific, e.g., every beta band corresponds to one specific subject. 
+This script will calculate the three measures of nonsinusoidalness for a given list of subjects, beta bands, channels 
+and conditions. 
+The bands, channels and conditions are subject specific, e.g., every beta band corresponds to one specific subject. 
 
-The three measures are calculated for all channels and conditions and saved in a matlab readable format. 
-The specific channels and conditions can be selected from the saved matrix afterwards. 
+The results are saved as matlab structs with 'esr', 'rdsr' and 'plv' as fields and per field the subject id as another 
+struct field. this field then contains two values: (mean, std) of the esr and rdsr measures, calculated over epochs. And 
+length and angle of the phase vector for the PLV measure. 
 
-Save it as a matlab struct with a field for every measure and then a field for every subject holding a matrix of 
-dimensions: channel x condition
-
-To save as struct one needs a dict in python: dict(esr={subject: matrix}, 
-                                                   rdsr={subject: matrix},
-                                                   plv={subject: matrix}) 
-                                                   where matrix is channels x conditions x (mean, std), e.g., 6x2x2
 """
 
 # path to the root of the repository. It should point to the folder with the data
@@ -71,67 +66,58 @@ for subject_idx, subject_id in enumerate(subject_list):
     pac_dict = dict(off=super_dict['PAC_{}_OFF.mat'.format(subject_id)],
                     on=super_dict['PAC_{}_ON.mat'.format(subject_id)])
 
-    channel_labels = np.squeeze(lfp_dict['on']['channels'])
-    channel_labels = [chan[0] for chan in channel_labels]
-    n_channels = len(lfp_dict['on']['channels'])
-
     # prelocate arrays
-    esr_mat = np.zeros((n_channels, 2))  # last dim is for mean, std
-    rdsr_mat = np.zeros((n_channels, 2))
-    meanPhaseVec_mat = np.zeros((n_channels, 2))  # last to dims for amplitude and angle
-    beta_amp_mat = np.zeros((n_channels))
+    esr_mat = np.zeros(2)  # last dim is for mean, std
+    rdsr_mat = np.zeros(2)
+    meanPhaseVec_mat = np.zeros(2)  # last to dims for amplitude and angle
 
     # get the data dict of the current condition
     condition_dict = lfp_dict[condition_list[subject_idx].lower()]
 
     n_samples, n_epochs = condition_dict['data'].shape[1:]
 
-    # select channels per hemisphere to treat them as separate subjects
-    channel_labels_local = np.squeeze(condition_dict['channels'])
+    # find channel index for the current subject
+    channel_idx = list(condition_dict['channels']).index(channels[subject_idx])
+    channel_lfp = condition_dict['data'][channel_idx]
 
-    for channel_idx, channel_label in enumerate(channel_labels_local):
+    esr = np.zeros(n_epochs)
+    rdsr = np.zeros(n_epochs)
+    mpl = np.zeros(n_epochs)  # mean phase vector length
+    mpa = np.zeros(n_epochs)  # amplitude
+    beta_amp = np.zeros(n_epochs)
 
-        channel_label = channel_label[0]
-        channel_lfp = condition_dict['data'][channel_idx]
+    # for every epoch
+    for epoch_idx, epoch in enumerate(channel_lfp.T):
+        # do preprocessing a la Cole et al
+        # low pass filter
+        lfp_pre = ut.low_pass_filter(y=epoch, fs=fs, cutoff=100, numtaps=250)
 
-        esr = np.zeros(n_epochs)
-        rdsr = np.zeros(n_epochs)
-        mpl = np.zeros(n_epochs)  # mean phase vector length
-        mpa = np.zeros(n_epochs)  # amplitude
-        beta_amp = np.zeros(n_epochs)
+        # extract beta amplitude
+        # calculate psd
+        frequs, psd = ut.calculate_psd(lfp_pre, fs=fs, window_length=1024)
+        # get the mask of the current band
+        band_mask = ut.get_array_mask(frequs >= beta_bands[subject_idx][0], frequs <= beta_bands[subject_idx][1])
+        # calculate beta amplitude
+        beta_amp[epoch_idx] = np.mean(psd[band_mask])
 
-        # for every epoch
-        for epoch_idx, epoch in enumerate(channel_lfp.T):
-            # do preprocessing a la Cole et al
-            # low pass filter
-            lfp_pre = ut.low_pass_filter(y=epoch, fs=fs, cutoff=100, numtaps=250)
+        # band pass filter
+        lfp_band = ut.band_pass_iir(y=lfp_pre, fs=fs, band=beta_bands[subject_idx])
+        # remove potential ringing artifacts
+        idx_167ms = int((fs / 1000) * 167)
+        lfp_band = lfp_band[idx_167ms:-idx_167ms]
+        lfp_band -= lfp_band.mean()
 
-            # extract beta amplitude
-            # calculate psd
-            frequs, psd = ut.calculate_psd(lfp_pre, fs=fs, window_length=1024)
-            # get the mask of the current band
-            band_mask = ut.get_array_mask(frequs >= beta_bands[subject_idx][0], frequs <= beta_bands[subject_idx][1])
-            # calculate beta amplitude
-            beta_amp[epoch_idx] = np.mean(psd[band_mask])
+        lfp_pre = lfp_pre[idx_167ms: -idx_167ms]
+        lfp_pre -= lfp_pre.mean()
 
-            # band pass filter
-            lfp_band = ut.band_pass_iir(y=lfp_pre, fs=fs, band=beta_bands[subject_idx])
-            # remove potential ringing artifacts
-            idx_167ms = int((fs / 1000) * 167)
-            lfp_band = lfp_band[idx_167ms:-idx_167ms]
-            lfp_band -= lfp_band.mean()
+        # calculate the sharpness and steepness ratios
+        esr[epoch_idx], rdsr[epoch_idx] = ut.calculate_cole_ratios(lfp_pre, lfp_band, fs, epoch)
+        mpl[epoch_idx], mpa[epoch_idx] = ut.calculate_mean_phase_amplitude(lfp_band, fs)
 
-            lfp_pre = lfp_pre[idx_167ms: -idx_167ms]
-            lfp_pre -= lfp_pre.mean()
-
-            # calculate the sharpness and steepness ratios
-            esr[epoch_idx], rdsr[epoch_idx] = ut.calculate_cole_ratios(lfp_pre, lfp_band, fs, epoch)
-            mpl[epoch_idx], mpa[epoch_idx] = ut.calculate_mean_phase_amplitude(lfp_band, fs)
-
-        esr_mat[channel_idx, :] = esr.mean(), esr.std()
-        rdsr_mat[channel_idx, :] = rdsr.mean(), rdsr.std()
-        meanPhaseVec_mat[channel_idx, :] = mpl.mean(), mpa.mean()
-        beta_amp_mat[channel_idx] = np.mean(beta_amp)
+    esr_mat = esr.mean(), esr.std()
+    rdsr_mat= rdsr.mean(), rdsr.std()
+    meanPhaseVec_mat = mpl.mean(), mpa.mean()
+    beta_amp_mat = np.mean(beta_amp)
 
     # save values for the current subject
     measures['esr'][subject_id] = esr_mat
@@ -139,11 +125,13 @@ for subject_idx, subject_id in enumerate(subject_list):
     measures['pvl'][subject_id] = meanPhaseVec_mat
 
     # print results for testing
-    print('Subject ID: {}, beta band {}, condition {}'.format(subject_id, beta_bands[subject_idx],
-                                                              condition_list[subject_idx]))
-    print('ESR {}'.format(esr_mat[:, 0]))
-    print('RDSR {}'.format(rdsr_mat[:, 0]))
-    print('PLV {}'.format(meanPhaseVec_mat[:, 0]))
+    print('Subject ID: {}, beta band {}, channel {}, condition {}'.format(subject_id,
+                                                                          beta_bands[subject_idx],
+                                                                          channels[subject_idx],
+                                                                          condition_list[subject_idx]))
+    # print('ESR {}'.format(esr_mat))
+    # print('RDSR {}'.format(rdsr_mat))
+    # print('PLV {}'.format(meanPhaseVec_mat))
 
 # save results
 scipy.io.savemat(os.path.join(save_folder, 'results_ESR_RDSR_PLV.mat'), measures)
