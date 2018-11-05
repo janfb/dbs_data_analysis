@@ -24,8 +24,9 @@ To save as struct one needs a dict in python: dict(esr={subject: matrix},
 """
 
 # path to the root of the repository. CHANGE THIS PATH ACCORDINGLY. It should point to the folder with the data
-root_path = '/Users/Jan/LRZBOX/Master/LR_Kuehn/'
-data_folder = os.path.join(root_path, 'data', 'STN_data_PAC')
+
+save_folder = os.path.abspath(os.path.join('../../', 'analysis_data'))
+data_folder = os.path.abspath(os.path.join('../../', 'data'))
 
 
 # list of subject ids to be included in the analysis
@@ -140,7 +141,11 @@ for band_idx, band in enumerate(beta_bands):
         measures['pvl'][subject_id] = meanPhaseVec_mat
 
         # print results for testing
-        print('Subject ID: {}, beta band {}'.format(subject_id, band))
-        print('ESR {}'.format(esr_mat[:, :, 0]))
-        print('RDSR {}'.format(rdsr_mat[:, :, 0]))
-        print('PLV {}'.format(meanPhaseVec_mat[:, :, 0]))
+        # print('Subject ID: {}, beta band {}'.format(subject_id, band))
+        # print('ESR {}'.format(esr_mat[:, :, 0]))
+        # print('RDSR {}'.format(rdsr_mat[:, :, 0]))
+        # print('PLV {}'.format(meanPhaseVec_mat[:, :, 0]))
+
+    # save results for every band
+    scipy.io.savemat(os.path.join(save_folder, 'results_ESR_RDSR_PLV_band{}_{}.mat'.format(band[0], band[1])),
+                     measures)
