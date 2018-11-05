@@ -77,7 +77,8 @@ for subject_idx, subject_id in enumerate(subject_list):
     n_samples, n_epochs = condition_dict['data'].shape[1:]
 
     # find channel index for the current subject
-    channel_idx = list(condition_dict['channels']).index(channels[subject_idx])
+    subject_channels = list(condition_dict['channels'])
+    channel_idx = subject_channels.index(channels[subject_idx])
     channel_lfp = condition_dict['data'][channel_idx]
 
     esr = np.zeros(n_epochs)
@@ -129,9 +130,13 @@ for subject_idx, subject_id in enumerate(subject_list):
                                                                           beta_bands[subject_idx],
                                                                           channels[subject_idx],
                                                                           condition_list[subject_idx]))
-    # print('ESR {}'.format(esr_mat))
-    # print('RDSR {}'.format(rdsr_mat))
-    # print('PLV {}'.format(meanPhaseVec_mat))
+measures['subject_list'] = subject_list
+measures['channel_list'] = channels
+measures['beta_bands'] = beta_bands
+measures['condition_list'] = condition_list
+
+# for testing
+print(measures)
 
 # save results
 scipy.io.savemat(os.path.join(save_folder, 'results_ESR_RDSR_PLV.mat'), measures)
