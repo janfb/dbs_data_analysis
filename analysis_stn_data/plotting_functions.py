@@ -246,6 +246,25 @@ def plot_ratio_illustration_for_poster(fs, lfp_pre, lfp_band, zeros, extrema, ex
 def calculate_sig_channels_and_correlation_matrix(data_pairs_list, x_labels, y_labels, title_list, figure_filename_list,
                                                   n_bands, sig_subject_ids, outlier_std_factor, n_variables,
                                                   correlation_matrix_idx_l, correlation_matrix_idx_u, band_str, save_folder):
+    """
+    Calculates correlations for given sinusoidalness measures. Remove outliers, plot the results in scatter and line
+    plots and return the corresponding correlations matrices, biases, r values, p values and standard errors.
+
+    :param data_pairs_list: list with two dictionaries, holding the x and y values, respectively
+    :param x_labels:
+    :param y_labels:
+    :param title_list:
+    :param figure_filename_list:
+    :param n_bands:
+    :param sig_subject_ids:
+    :param outlier_std_factor:
+    :param n_variables:
+    :param correlation_matrix_idx_l:
+    :param correlation_matrix_idx_u:
+    :param band_str:
+    :param save_folder:
+    :return:
+    """
 
     # save the final correlation coefs in a matrix for better comparison
     n_corrs = int(n_variables * (n_variables - 1) / 2)
@@ -284,7 +303,7 @@ def calculate_sig_channels_and_correlation_matrix(data_pairs_list, x_labels, y_l
         if plot_idx == 1:
             plt.ylabel(y_labels[data_pair_idx])
 
-        # plot two correlation line, one for all points, one for selected points (outlier free)
+        # plot two correlation lines, one for all points, one for selected points (outlier free)
         # plot all
         xvals = np.linspace(x_all.min(), x_all.max(), x_all.size)
         plt.plot(xvals, bias + slope * xvals, label='r={}, p={}'.format(r, p))
