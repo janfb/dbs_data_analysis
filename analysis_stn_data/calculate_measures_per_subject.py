@@ -123,9 +123,6 @@ for subject_idx, subject_id in enumerate(subject_list):
     if condition_list[subject_idx] not in result_dict[subject_id][subject_channels[channel_idx]].keys():
         result_dict[subject_id][subject_channels[channel_idx]][condition_list[subject_idx]] = dict()
 
-    # if str(beta_bands[subject_idx]) not in result_dict[subject_id][subject_channels[channel_idx]][condition_list[subject_idx]].keys():
-    #     result_dict[subject_id][subject_channels[channel_idx]][condition_list[subject_idx]][str(beta_bands[subject_idx])] = dict()
-
     # save values for the current subject
     result_dict[subject_id][subject_channels[channel_idx]][condition_list[subject_idx]] =\
         dict(betaband=beta_bands[subject_idx], esr=esr_mat, rdsr=rdsr_mat, pvl=meanPhaseVec_mat)
