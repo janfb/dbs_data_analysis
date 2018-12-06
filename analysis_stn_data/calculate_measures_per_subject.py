@@ -1,7 +1,10 @@
+import matplotlib.pyplot as plt
 import numpy as np
 import os
 import scipy.io
 import sys
+
+from plotting_functions import plot_ratio_illustration_for_poster
 
 sys.path.append('../')
 import utils as ut
@@ -16,6 +19,9 @@ struct field. this field then contains two values: (mean, std) of the esr and rd
 length and angle of the phase vector for the PLV measure. 
 
 """
+
+# Flag for plotting figure 3 for every subject and selecting one for illustration purpose.
+plot_figure3_poster = True
 
 # path to the root of the repository. It should point to the folder with the data
 save_folder = os.path.abspath(os.path.join('../../', 'analysis_data'))
@@ -89,6 +95,7 @@ for subject_idx, subject_id in enumerate(subject_list):
         # low pass filter
         lfp_pre = ut.low_pass_filter(y=epoch, fs=fs, cutoff=100, numtaps=250)
 
+
         # extract beta amplitude
         # calculate psd
         frequs, psd = ut.calculate_psd(lfp_pre, fs=fs, window_length=1024)
@@ -106,6 +113,24 @@ for subject_idx, subject_id in enumerate(subject_list):
 
         lfp_pre = lfp_pre[idx_167ms: -idx_167ms]
         lfp_pre -= lfp_pre.mean()
+
+        # For plotting figure 3
+        if plot_figure3_poster:
+            # find lfp band zeros
+            zeros_rising, zeros_falling, zeros = ut.find_rising_and_falling_zeros(lfp_band)
+
+            # find the peaks in between the zeros, USING THE RAW DATA!
+            analysis_lfp = lfp_pre
+            peaks, troughs, extrema, extrema_kind = ut.find_peaks_and_troughs_cole(analysis_lfp,
+                                                                                zeros=zeros,
+                                                                                rising_zeros=zeros_rising,
+                                                                                falling_zeros=zeros_falling)
+            rise_steepness, fall_steepness, steepness_indices, steepness_values = ut.calculate_rise_and_fall_steepness(
+                analysis_lfp, extrema)
+
+            plot_ratio_illustration_for_poster(fs, lfp_pre, lfp_band, zeros, extrema, extrema_kind, steepness_indices,
+                                               steepness_values, save_figure=False)
+            plt.show()
 
         # calculate the sharpness and steepness ratios
         esr[epoch_idx], rdsr[epoch_idx] = ut.calculate_cole_ratios(lfp_pre, lfp_band, fs, epoch)
@@ -139,7 +164,7 @@ result_dict['beta_bands'] = beta_bands
 result_dict['condition_list'] = condition_list
 
 # for testing
-print(result_dict)
+# print(result_dict)
 
 # save results
 scipy.io.savemat(os.path.join(save_folder, 'results_ESR_RDSR_PLV.mat'), result_dict)

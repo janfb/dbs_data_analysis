@@ -167,9 +167,28 @@ def plot_beta_band_selection_illustration_for_poster(pac_matrix_sig, pac_matrix_
 
 
 def plot_ratio_illustration_for_poster(fs, lfp_pre, lfp_band, zeros, extrema, extrema_kind, steepness_indices,
-                                       steepness_values, save=False):
+                                       steepness_values, save_figure=False):
     """
-    Plot a figure for illustration of sharpness ratio and steepness ration calculation. use large fonts for poster.
+    Create a plot as in figure 3 of the Bernstein Conference poster to illustrate the filtering and feature extraction.
+    The quantities needed here (zeros, extrema, extrema_kind, steepness_indices, steepness_values) you can calculate
+    using methods in utils:
+        - find_rising_and_falling_zeros
+        - find_peaks_and_troughs_cole
+        - calculate_rise_and_fall_steepness
+
+    :param fs:
+    :param lfp_pre: low pass filtered lfp signal
+    :param lfp_band: beta band pass filtered lfp signal
+    :param zeros: the zeros crossing indices of the array
+    :param extrema: the extrama indices
+    :param extrema_kind: max or min (1 or -1)
+    :param steepness_indices: indices of maximal steepness
+    :param steepness_values:
+    :param save_figure:
+    :return:
+    """
+    """
+    Plot a figure for illustration of sharpness ratio and steepness ratio calculation. use large fonts for poster.
     """
     upto = 5
     fontsize = 20
@@ -238,7 +257,7 @@ def plot_ratio_illustration_for_poster(fs, lfp_pre, lfp_band, zeros, extrema, ex
 
     plt.tight_layout()
     plt.legend(frameon=False, prop={'size': 20})
-    if save:
+    if save_figure:
         plt.savefig(os.path.join(SAVE_PATH_FIGURES, 'pre_sharpness.pdf'))
         plt.show()
 
